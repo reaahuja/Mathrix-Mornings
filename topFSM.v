@@ -6,26 +6,33 @@
 module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput);
     input wire Clock, Reset, Start, Go;
     input wire [6:0] DataIn;  
-    output wire [6:0] CounterOutput; 
+    output wire [6:0] CounterOutput; //20 second counter
 
-    wire countDone, audioDone, correct, Wrong, Sequencer, startCounter; 
-    wire [6:0] CounterValue;
+    wire countDone, audioDone, correct, Wrong, Sequencer, startCounter, extra; 
+    wire [6:0] CounterValue; //on going counter
 
     topControl t0(Clock, Reset, Start, Go, DataIn, countDone, audioDone, correct, Wrong, Sequencer, startCounter);
     //topData d0(Clock, Reset, Start, Go, countDone, audioDone, correct, Wrong, Sequencer, DataIn, CounterOutput);
 
     //counters 
-    //counter twentyCounter(Clock, Reset, startCounter, CounterOutput, countDone);
-
     counter twentyCounter (
     .Clock(Clock),
     .Reset(Reset),
     .Enable(startCounter),
-    .Timer(CounterOutput), // Assuming CounterOutput is meant to show the Timer value
-    .countDone(countDone)  // This should be the same signal as in topFSM
+    .mode(1'b1),
+    .Timer(CounterOutput), 
+    .countDone(countDone)  
     );
 
-    //counter onGoing(Clock, Reset, Start, CounterValue, countDone);
+    counter onGoingCounter (
+    .Clock(Clock),
+    .Reset(Reset),
+    .Enable(Start),
+    .mode(1'b0),
+    .Timer(CounterValue), 
+    .countDone(extra)  
+    );
+
 endmodule 
 
 module topControl(
@@ -110,6 +117,7 @@ module counter(
     input Clock, 
     input Reset, 
     input Enable, 
+    input mode,
     output reg [6:0] Timer,
     output reg countDone
 );
@@ -123,7 +131,7 @@ module counter(
         Timer <= CounterValue;
         CounterValue <= CounterValue + 1;
         
-        if(CounterValue == 7'b0010100) begin
+        if(CounterValue == 7'b0010100 && mode != 1'b0) begin
             Timer <= 7'b0;
             countDone <= 1'b1;
         end 
