@@ -16,9 +16,11 @@ add wave -position insertpoint \
     sim:/topFSM/DataIn \
     sim:/topFSM/Go \
     sim:/topFSM/CounterOutput \
+    sim:/topFSM/startEq1 \
     sim:/topFSM/t0/countDone \
     sim:/topFSM/t0/current_state \
     sim:/topFSM/t0/next_state \
+     sim:/topFSM/t0/startEq1 \
     sim:/topFSM/twentyCounter/Enable \
     sim:/topFSM/twentyCounter/Timer \
     sim:/topFSM/twentyCounter/countDone \

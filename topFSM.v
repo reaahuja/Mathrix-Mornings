@@ -8,10 +8,12 @@ module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput);
     input wire [6:0] DataIn;  
     output wire [6:0] CounterOutput; //20 second counter
 
-    wire countDone, audioDone, correct, Wrong, Sequencer, startCounter, extra; 
+    wire countDone, audioDone, correct, Wrong, Sequencer, startCounter, extra;
+    //equations wires 
+    wire startEq1, startEq2, startEq3; 
     wire [6:0] CounterValue; //on going counter
 
-    topControl t0(Clock, Reset, Start, Go, DataIn, countDone, audioDone, correct, Wrong, Sequencer, startCounter);
+    topControl t0(Clock, Reset, Start, Go, DataIn, countDone, audioDone, correct, Wrong, Sequencer, startCounter, startEq1, startEq2, startEq3);
     //topData d0(Clock, Reset, Start, Go, countDone, audioDone, correct, Wrong, Sequencer, DataIn, CounterOutput);
 
     //counters 
@@ -39,7 +41,8 @@ module topControl(
     input Clock, Reset, Start, Go, 
     input [6:0] DataIn,
     input countDone,
-    output reg audioDone, correct, Wrong, Sequencer, startCounter
+    output reg audioDone, correct, Wrong, Sequencer, startCounter,
+    output reg startEq1, startEq2, startEq3
     );
 
 
@@ -76,6 +79,9 @@ module topControl(
       Wrong = 1'b0; 
       Sequencer = 1'b0; 
       startCounter = 1'b0;
+      startEq1 = 1'b0;
+      startEq2 = 1'b0;
+      startEq3 = 1'b0;
 
       case(current_state) 
         //  STARTING: begin 
@@ -89,10 +95,13 @@ module topControl(
             audioDone = 1'b1;
          end
          EQUATION_1: begin
+            startEq1 = 1'b1; //signal for FSM to start -- turns low inside FSM to disable it
          end
          EQUATION_2: begin
+            startEq2 = 1'b1;
          end
          EQUATION_3: begin
+            startEq3 = 1'b1;
          end
          SEQUENCER: begin
          end
