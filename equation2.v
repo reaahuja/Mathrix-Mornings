@@ -4,17 +4,17 @@ Reset: Active High reset
 Go: Signal asserted to input value to system 
 OngoingTimer: The current time in the system 
 DataIn: The value for the different variables 
-startEq1: Queue to start FSM
+startEq2: Queue to start FSM
 correct: Determining whether the input was correct or not 
 */
 
-module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
+module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
     input Clock;
     input Reset;
     input Go;
     input [6:0] OngoingTimer;
     input [7:0] DataIn;
-    input startEq1;
+    input startEq2;
     output correct;
 
     // lots of wires to connect our datapath and control
@@ -32,7 +32,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         OngoingTimer, 
         DataIn, 
         correct,
-        startEq1,
+        startEq2,
         ld_x, ld_y, ld_z, ld_a, ld_r,
         ld_alu_out,
         alu_select_a, alu_select_b,
@@ -49,7 +49,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         ld_alu_out,
         alu_select_a, alu_select_b,
         alu_op,
-        correct, startEq1, 
+        correct, startEq2, 
         DataResult
     );
 
@@ -61,7 +61,7 @@ module control(
         input [6:0] OngoingTimer, 
         input [7:0] DataIn, 
         input correct,
-        input startEq1,
+        input startEq2,
         output reg ld_x, ld_y, ld_z, ld_a, ld_r,
         output reg ld_alu_out,
         output reg [1:0] alu_select_a, alu_select_b,
@@ -89,7 +89,7 @@ module control(
     always@(*)
     begin: state_table
             case (current_state)
-                getA: next_state = startEq1 ? LOAD_X : getA; 
+                getA: next_state = startEq2 ? LOAD_X : getA; 
                 LOAD_X: next_state = go ? LOAD_X_WAIT : LOAD_X; 
                 LOAD_X_WAIT: next_state = go ? LOAD_X_WAIT : LOAD_Y; 
                 LOAD_Y: next_state = go ? LOAD_Y_WAIT : LOAD_Y; 
@@ -101,11 +101,11 @@ module control(
                 CYCLE_2: next_state = CYCLE_3;
                 CYCLE_3: next_state = COMPARE;
                 COMPARE: next_state = correct ? COMPLETE : getA; // we will be done our two operations, start over after
-                COMPLETE: next_state = startEq1 ? getA : COMPLETE;
+                COMPLETE: next_state = startEq2 ? getA : COMPLETE;
             default:     next_state = getA;
         endcase
     end // state_table
-    //TURN STARTEQ1 LOW IN COMPLETE
+    //TURN startEq2 LOW IN COMPLETE
 
     // Output logic aka all of our datapath control signals
     always @(*)
@@ -136,25 +136,25 @@ module control(
             LOAD_Z: begin
                 ld_z = 1'b1;
                 end
-            CYCLE_0: begin // Do X/Z in X
+            CYCLE_0: begin // Do X*Y in Y
                 alu_select_a = 2'b00;
-                alu_select_b = 2'b10;
-                alu_op = 2'b10;
-                ld_alu_out = 1'b1; ld_x = 1'b1;
+                alu_select_b = 2'b01;
+                alu_op = 2'b01;
+                ld_alu_out = 1'b1; ld_y = 1'b1;
             end
-            CYCLE_1: begin // Do (X/Z) * (X/Z) in X
+            CYCLE_1: begin // Do X*X in X
                 alu_select_a = 2'b00;
                 alu_select_b = 2'b00;
                 alu_op = 2'b01;
                 ld_alu_out = 1'b1; ld_x = 1'b1;
             end
-            CYCLE_2: begin // Do Y/Z in Y
-                alu_select_a = 2'b01; 
+            CYCLE_2: begin // Do (X*X)*Z in X
+                alu_select_a = 2'b00; 
                 alu_select_b = 2'b10;
-                alu_op = 2'b10;
-                ld_alu_out = 1'b1; ld_y = 1'b1;
+                alu_op = 2'b01;
+                ld_alu_out = 1'b1; ld_x = 1'b1;
             end
-            CYCLE_3: begin // Do Y/Z + (X/Z)^2 in R
+            CYCLE_3: begin // Do ((X*X)*Z) + X*Y in R
                 alu_select_a = 2'b00;
                 alu_select_b = 2'b01;
                 alu_op = 2'b00;
@@ -189,7 +189,7 @@ module datapath(
         input ld_alu_out,
         input [1:0] alu_select_a, alu_select_b,
         input [1:0] alu_op,
-        output reg correct, startEq1,
+        output reg correct, startEq2,
         output reg [7:0] data_result
     );
 
@@ -278,7 +278,7 @@ module datapath(
     begin: COMPARE
         if (compareValues == 1'b1 && a == data_result) begin 
             correct <= 1'b1;
-            startEq1 <= 1'b0;
+            startEq2 <= 1'b0;
         end
         else if (a != data_result)begin
             correct <= 1'b0; 
