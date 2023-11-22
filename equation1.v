@@ -45,17 +45,16 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         OngoingTimer,
         DataIn, 
         compareValues, turnOff,
-        correct, startEq1, 
         ld_x, ld_y, ld_z, ld_a, ld_r,
         ld_alu_out,
         alu_select_a, alu_select_b,
         alu_op,
+        correct, startEq1, 
         DataResult
     );
 
 
  endmodule
-
 
 module control(
         input Clock, Reset, go, 
@@ -120,7 +119,7 @@ module control(
         ld_r = 1'b0;
         alu_select_a = 2'b0;
         alu_select_b = 2'b0;
-        alu_op       = 1'b0;
+        alu_op       = 2'b0;
         compareValues = 1'b0; 
         turnOff = 1'b0;
 
@@ -137,25 +136,25 @@ module control(
             LOAD_Z: begin
                 ld_z = 1'b1;
                 end
-            CYCLE_0: begin // Do X/Z
+            CYCLE_0: begin // Do X/Z in X
                 alu_select_a = 2'b00;
                 alu_select_b = 2'b10;
                 alu_op = 2'b10;
                 ld_alu_out = 1'b1; ld_x = 1'b1;
             end
-            CYCLE_1: begin // Do (X/Z) * (X/Z)
+            CYCLE_1: begin // Do (X/Z) * (X/Z) in X
                 alu_select_a = 2'b00;
                 alu_select_b = 2'b00;
                 alu_op = 2'b01;
                 ld_alu_out = 1'b1; ld_x = 1'b1;
             end
-            CYCLE_2: begin // Do Y/Z
-                alu_select_a = 2'b01;
+            CYCLE_2: begin // Do Y/Z in Y
+                alu_select_a = 2'b01; 
                 alu_select_b = 2'b10;
                 alu_op = 2'b10;
                 ld_alu_out = 1'b1; ld_y = 1'b1;
             end
-            CYCLE_3: begin // Do Y/Z + (X/Z)^2
+            CYCLE_3: begin // Do Y/Z + (X/Z)^2 in R
                 alu_select_a = 2'b00;
                 alu_select_b = 2'b01;
                 alu_op = 2'b00;
@@ -165,7 +164,7 @@ module control(
                 compareValues = 1'b1; 
             end
             COMPLETE: begin //done
-                turnOff = 1'b1; 
+                turnOff = 1'b1; //for VGA
             end
         endcase
     end // enable_signals
@@ -180,17 +179,17 @@ module control(
     end // state_FFS
 endmodule
 
+
 module datapath(
         input Clock, Reset, Go, 
         input [6:0] OngoingTimer, 
         input [7:0] DataIn, 
         input compareValues, turnOff, 
-        output reg correct,
-        output reg startEq1,
         input ld_x, ld_y, ld_z, ld_a, ld_r,
         input ld_alu_out,
         input [1:0] alu_select_a, alu_select_b,
         input [1:0] alu_op,
+        output reg correct, startEq1,
         output reg [7:0] data_result
     );
 
@@ -218,7 +217,7 @@ module datapath(
             if(ld_z)
                 z <= DataIn;
             if(ld_a)
-                a <= OngoingTimer;
+                a <= {1'b1, OngoingTimer};
         end
     end
 
@@ -236,21 +235,21 @@ module datapath(
     always @(*)
     begin
         case (alu_select_a)
-            2'd0:
+            2'b00:
                 alu_a = x;
-            2'd1:
+            2'b01:
                 alu_a = y;
-            2'd2:
+            2'b10:
                 alu_a = z;
             default: alu_a = 8'b0;
         endcase
 
         case (alu_select_b)
-            2'd0:
+            2'b00:
                 alu_b = x;
-            2'd1:
+            2'b01:
                 alu_b = y;
-            2'd2:
+            2'b10:
                 alu_b = z;
             default: alu_b = 8'b0;
         endcase
@@ -276,7 +275,7 @@ module datapath(
 
     //comparison 
     always @(*)
-    begin: Compare
+    begin: COMPARE
         if (compareValues == 1'b1 && a == data_result) begin 
             correct <= 1'b1;
             startEq1 <= 1'b0;
@@ -287,3 +286,5 @@ module datapath(
     end
 
 endmodule
+
+//SIGNAL FOR VGA TO DETERMINE IF OUTPUT IS WRONG OR NOT 
