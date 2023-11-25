@@ -80,26 +80,42 @@ reg snd;
 /*****************************************************************************
  *                             Sequential Logic                              *
  *****************************************************************************/
+wire enable = SW[0];
+wire [31:0] sound1, sound2, sound3, sound4, sound5;
 
-always @(posedge CLOCK_50)
-	if(delay_cnt == delay) begin
-		delay_cnt <= 0;
-		snd <= !snd;
-	end else delay_cnt <= delay_cnt + 1;
+parameter C4 = CLOCK_50/262; 
+//parameter C4 = CLOCK_50/(2*261); 
+parameter D5 = CLOCK_50/587;
+//parameter D5 = ClOCK_50/(2*587);
+parameter E5 = CLOCK_50/659;
+//parameter E5 = CLOCK_50/(2*659);
+
+playSound note1(CLOCK_50, sound1, C4, enable); 
+playSound note2(CLOCK_50, sound2, D5, enable);
+playSound note3(CLOCK_50, sound3, E5, enable);
+playSound note4(CLOCK_50, sound4, D5, enable);
+playSound note5(CLOCK_50, sound5, C5, enable);
+
+
+// always @(posedge CLOCK_50)
+// 	if(delay_cnt == delay) begin
+// 		delay_cnt <= 0;
+// 		snd <= !snd;
+// 	end else delay_cnt <= delay_cnt + 1;
 
 /*****************************************************************************
  *                            Combinational Logic                            *
  *****************************************************************************/
 
-assign delay = {SW[3:0], 15'd3000};
+// assign delay = {SW[3:0], 15'd3000};
 
-wire [31:0] sound = (SW == 0) ? 0 : snd ? 32'd10000000 : -32'd10000000;
+// wire [31:0] sound = (SW == 0) ? 0 : snd ? 32'd10000000 : -32'd10000000;
 
 
 assign read_audio_in			= audio_in_available & audio_out_allowed;
 
-assign left_channel_audio_out	= left_channel_audio_in+sound;
-assign right_channel_audio_out	= right_channel_audio_in+sound;
+assign left_channel_audio_out	= left_channel_audio_in+sound1+sound2+sound3+sound4+sound5;
+assign right_channel_audio_out	= right_channel_audio_in+sound1+sound2+sound3+sound4+sound5;
 assign write_audio_out			= audio_in_available & audio_out_allowed;
 
 /*****************************************************************************
@@ -147,4 +163,27 @@ avconf #(.USE_MIC_INPUT(1)) avc (
 );
 
 endmodule
+
+module playSound(CLOCK_50, sound, delay, enable); 
+    input CLOCK_50;
+    output reg signed [31:0] sound;
+    input [20:0] delay;
+    input enable;
+    reg signed [20:0] delay_cnt;
+    reg snd;
+
+    always @(posedge CLOCK_50) begin 
+        if (delay_cnt == delay) begin
+            delay_cnt <= 0;
+            snd <= !snd;
+        end else begin
+            delay_cnt <= delay_cnt + 1;
+        end
+    end
+
+    always @(*) begin 
+        sound <= (enable) ? (snd ? 32'd10000000 : -32'd10000000) : 0;
+    end
+endmodule
+
 
