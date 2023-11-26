@@ -8,45 +8,39 @@ correct: An output signal to determine if the user is correct or not
 -- Initial Draft is of system without user input and checking --
 */
 module equation3(Clock, Reset, Go, startEq3, correct);
-input Clock, Reset, Go, startEq3;
-output correct; 
+    input Clock, Reset, Go, startEq3;
+    output correct; 
 
-wire [3:0] data_in;
-wire ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
-wire [2:0] select_extra, select_a, select_b; 
-wire mux_extra, mux_a, mux_b, initalize; 
-wire [1:0] alu_mini, alu_grand;
+    wire [3:0] data_in;
+    wire ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
+    wire [2:0] select_extra, select_a, select_b; 
+    wire mux_extra, mux_a, mux_b, initalize; 
+    wire [1:0] alu_mini, alu_grand;
 
-control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
-           .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
-           .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
-           .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize)
-           .alu_mini(alu_mini), .alu_grand(alu_grand), 
-           .correct(correct)
-          );
-datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
-           .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
-           .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
-           .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize)
-           .alu_mini(alu_mini), .alu_grand(alu_grand), 
-           .correct(correct)
-          );
+    control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
+            .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
+            .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
+            .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
+            .alu_mini(alu_mini), .alu_grand(alu_grand), 
+            .correct(correct)
+            );
+    datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
+            .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
+            .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
+            .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
+            .alu_mini(alu_mini), .alu_grand(alu_grand), 
+            .correct(correct)
+            );
 
 endmodule
 
-module control(Clock, Reset, Go, startEq3,
-               ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
-               select_extra, select_a, select_b, 
-               mux_extra, mux_a, mux_b, initalize
-               alu_mini, alu_grand,
-               correct
+module control(input Clock, Reset, Go, startEq3,
+               output reg ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
+               output reg [2:0] select_extra, select_a, select_b, 
+               output reg mux_extra, mux_a, mux_b, initalize,
+               output reg [1:0] alu_mini, alu_grand,
+               output reg correct
               );
-input Clock, Reset, Go, startEq3; 
-output reg ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;;
-output reg [2:0] select_extra, select_a, select_b; 
-output reg mux_extra, mux_a, mux_b, initalize;
-output reg [1:0] alu_mini, alu_grand;
-output reg correct;
 
 reg [5:0] current_state, next_state;
 
@@ -99,7 +93,7 @@ output reg [2:0] select_extra, select_a, select_b;
 output reg mux_extra, mux_a, mux_b, initalize; INITALIZE IS ADDED SIGNAL
 output reg [1:0] alu_mini, alu_grand;
 */
-always @(*):
+always @(*)
 begin: enable_signals
     ld_extra = 1'b0; ld_1 = 1'b0; ld_2 = 1'b0;  ld_3 = 1'b0; ld_4 = 1'b0; ld_5 = 1'b0; ld_6 = 1'b0;
     select_extra = 3'b0; select_a = 3'b0; select_b = 3'b0; 
@@ -252,29 +246,24 @@ begin: enable_signals
     endcase
 end
 
-always @(posedge Clock)
-begin: state_FFS
-    if(Reset)
-        current_state <= LoadRegisters; 
-    else 
-        current state <= next_state;
-end
+    always @(posedge Clock)
+    begin: state_FFS
+        if(Reset)
+            current_state <= LoadRegisters; 
+        else 
+            current_state <= next_state;
+    end
+
 endmodule
 
-module datapath(Clock, Reset, Go, startEq3,
-               ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
-               select_extra, select_a, select_b, 
-               mux_extra, mux_a, mux_b, initalize
-               alu_mini, alu_grand,
-               correct
+module datapath(
+               input Clock, Reset, Go, startEq3,
+               input ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
+               input [2:0] select_extra, select_a, select_b, 
+               input mux_extra, mux_a, mux_b, initalize,
+               input [1:0] alu_mini, alu_grand,
+               output reg correct
               );
-        input Clock, Reset, Go, startEq3; 
-        input ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
-        input [2:0] select_extra, select_a, select_b; 
-        input mux_extra, mux_a, mux_b, initalize;
-        input [1:0] alu_mini, alu_grand;
-        output reg correct; //don't need this for now 
-
         //registers
         reg [7:0] regExtra, reg1, reg2, reg3, reg4, reg5, reg6;
         //muxes
@@ -319,17 +308,17 @@ module datapath(Clock, Reset, Go, startEq3,
             end
             else begin 
                 if(ld_1)
-                    reg1 <= alu_grand_out
+                    reg1 <= alu_grand_out;
                 if(ld_2)
-                    reg2 <= alu_grand_out
+                    reg2 <= alu_grand_out;
                 if(ld_3)
-                    reg3 <= alu_grand_out
+                    reg3 <= alu_grand_out;
                 if(ld_4)
-                    reg4 <= alu_grand_out
+                    reg4 <= alu_grand_out;
                 if(ld_5)
-                    reg5 <= alu_grand_out
+                    reg5 <= alu_grand_out;
                 if(ld_6)
-                    reg6 <= alu_grand_out
+                    reg6 <= alu_grand_out;
             end
         end
 
