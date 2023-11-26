@@ -5,78 +5,99 @@ Go: Signal asserted to input value to system
 startEq3: A signal to start the system 
 correct: An output signal to determine if the user is correct or not 
 OngoingTimer: The current time
+DataIn: The data inputted by the user 
 
 -- Initial Draft is of system without user input and checking --
 */
-module equation3(Clock, Reset, Go, startEq3, OngoingTimer, correct);
+module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     input Clock, Reset, Go, startEq3;
     input [6:0] OngoingTimer;
+    input [7:0] DataIn;
     output correct; 
 
-    wire [3:0] data_in;
     wire ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
     wire [2:0] select_extra, select_a, select_b; 
     wire mux_extra, mux_a, mux_b, initalize; 
     wire [1:0] alu_mini, alu_grand;
 
+    wire startCompare;
+    wire [7:0] xInput, yInput;
+
     wire Load; 
     wire [2:0] randomNum;
     random r0(Clock, Load, OngoingTimer[2:0], randomNum); 
 
-    control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
+    control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3), .DataIn(DataIn),
+            .correct(correct),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
             .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
             .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
-            .correct(correct),
-            .Load(Load)
+            .Load(Load), 
+            .xInput(xInput), .yInput(yInput), 
+            .startCompare(startCompare)
             );
-    datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
+    datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
             .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
             .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
             .randomNum(randomNum),
-            .correct(correct)
+            .startCompare(startCompare),
+            .xInput(xInput), .yInput(yInput),
+            .correct(correct),
+            .startEq3(startEq3)
             );
 
 endmodule
 
 module control(input Clock, Reset, Go, startEq3, 
+               input correct,
+               input [7:0] DataIn,
                output reg ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
                output reg [2:0] select_extra, select_a, select_b, 
                output reg mux_extra, mux_a, mux_b, initalize,
                output reg [1:0] alu_mini, alu_grand,
-               output reg correct,
-               output reg Load
+               output reg Load,
+               output reg [7:0] xInput, yInput,
+               output reg startCompare
               );
 
 reg [5:0] current_state, next_state;
 
 localparam LoadRegisters = 5'd0,
-           Cycle1_prep = 5'd1,
-           Cycle1_a = 5'd2,
-           Cycle1_b = 5'd3,
-           Cycle1_c = 5'd4,
-           Cycle2_prep = 5'd5,
-           Cycle2_a = 5'd6,
-           Cycle2_b = 5'd7,
-           Cycle2_c = 5'd8,
-           Cycle3_prep = 5'd9,
-           Cycle3_a = 5'd10,
-           Cycle3_b = 5'd11,
-           Cycle3_c = 5'd12,
-           Cycle4_prep = 5'd13,
-           Cycle4_a = 5'd14,
-           Cycle4_b = 5'd15,
-           Cycle4_c = 5'd16,
-           Done = 5'd17;
+           getX = 5'd1,
+           getX_wait = 5'd2,
+           getY = 5'd3,
+           getY_wait = 5'd4,
+           Cycle1_prep = 5'd5,
+           Cycle1_a = 5'd6,
+           Cycle1_b = 5'd7,
+           Cycle1_c = 5'd8,
+           Cycle2_prep = 5'd9,
+           Cycle2_a = 5'd10,
+           Cycle2_b = 5'd11,
+           Cycle2_c = 5'd12,
+           Cycle3_prep = 5'd13,
+           Cycle3_a = 5'd14,
+           Cycle3_b = 5'd15,
+           Cycle3_c = 5'd16,
+           Cycle4_prep = 5'd17,
+           Cycle4_a = 5'd18,
+           Cycle4_b = 5'd19,
+           Cycle4_c = 5'd20,
+           Compare = 5'd21,
+           Done = 5'd22;
 
 //need to add comparison and user input states 
 always @(*)
 begin: state_table
     case (current_state)
-        LoadRegisters: next_state = startEq3 ? Cycle1_prep : LoadRegisters;
+        LoadRegisters: next_state = startEq3 ? getX : LoadRegisters;
+        getX: next_state = Go ? getX_wait : getX;
+        getX_wait: next_state = Go ? getX_wait : getY;
+        getY: next_state = Go ? getY_wait : getY;
+        getY_wait: next_state = Go ? getY_wait : Cycle1_prep;
         Cycle1_prep: next_state = Cycle1_a;
         Cycle1_a: next_state = Cycle1_b;
         Cycle1_b: next_state = Cycle1_c;
@@ -92,8 +113,9 @@ begin: state_table
         Cycle4_prep: next_state = Cycle4_a;
         Cycle4_a: next_state = Cycle4_b;
         Cycle4_b: next_state = Cycle4_c;
-        Cycle4_c: next_state = Done;
-        //Done: next_state = startEq3 ? 
+        Cycle4_c: next_state = Compare;
+        Compare: next_state = correct ? Done : LoadRegisters;
+        Done: next_state = !startEq3 ? LoadRegisters : Done; 
     endcase
 end
 /* All Signals:
@@ -108,13 +130,22 @@ begin: enable_signals
     select_extra = 3'b0; select_a = 3'b0; select_b = 3'b0; 
     mux_extra = 1'b1; mux_a = 1'b1; mux_b = 1'b1; initalize = 1'b0;
     alu_mini = 2'b0; alu_grand = 2'b0;
-    correct = 1'b0;
     Load = 1'b1; //put seed 
+    startCompare = 1'b0;
 
     case(current_state)
         LoadRegisters: begin 
             initalize = 1'b1;
             Load = 1'b0; //get random numbers
+            //correct = 1'b0;
+        end
+
+        getX_wait: begin 
+            xInput = DataIn;
+        end
+
+        getY_wait: begin 
+            yInput = DataIn;
         end
 
         Cycle1_prep: begin
@@ -245,9 +276,13 @@ begin: enable_signals
             ld_3 = 1'b1;
         end
 
-        Done: begin 
-            correct = 1'b1;
+        Compare: begin 
+            startCompare = 1'b1;
         end
+
+        // Done: begin 
+        //     correct = 1'b1;
+        // end
     endcase
 end
 
@@ -262,13 +297,16 @@ end
 endmodule
 
 module datapath(
-               input Clock, Reset, Go, startEq3,
+               input Clock, Reset, Go,
                input ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
                input [2:0] select_extra, select_a, select_b, 
                input mux_extra, mux_a, mux_b, initalize,
                input [1:0] alu_mini, alu_grand,
                input [2:0] randomNum,
-               output reg correct
+               input startCompare,
+               input [7:0] xInput, yInput,
+               output reg correct,
+               output reg startEq3
               );
         //registers
         reg [7:0] regExtra, reg1, reg2, reg3, reg4, reg5, reg6;
@@ -445,6 +483,18 @@ module datapath(
                     alu_grand_out = mux_b_m / mux_a_m;
                 end
             endcase
+        end
+
+        //comparison 
+        always @(*)
+        begin: COMPARE
+            if (xInput == reg3 && yInput == reg6) begin 
+                correct <= 1'b1;
+                startEq3 <= 1'b0;
+            end
+            else begin
+                correct <= 1'b0; 
+            end
         end
 endmodule
 
