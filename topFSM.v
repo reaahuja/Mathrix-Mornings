@@ -121,7 +121,7 @@ module topControl(
 endmodule
 
 
-
+//HAVE TO CHANGE SO IT GOES EVERY SECOND -- code underneath 
 module counter(
     input Clock, 
     input Reset, 
@@ -147,4 +147,45 @@ module counter(
     end
 end
 endmodule
+
+/*
+module counter(
+    input Clock, 
+    input Reset, 
+    input Enable, 
+    input mode,
+    output reg [6:0] Timer,
+    output reg countDone
+);
+
+    parameter clockTiming = 50000000;
+    reg [25:0] oneSecondCounter = 26'b0;
+
+    reg [6:0] CounterValue = 7'b0; 
+
+    always @(posedge Clock or posedge Reset) begin
+        if (Reset) begin
+            CounterValue <= 7'b0;
+            oneSecondCounter <= 26'b0;
+            countDone <= 1'b0;
+        end else if (Enable) begin
+            // Increment the oneSecondCounter each clock cycle
+            if (oneSecondCounter < clockTiming - 1) begin
+                oneSecondCounter <= oneSecondCounter + 1;
+            end else begin
+                // Once oneSecondCounter reaches clockTiming, reset it and increment CounterValue
+                oneSecondCounter <= 26'b0;
+                Timer <= CounterValue;
+                CounterValue <= CounterValue + 1;
+                
+                if(CounterValue == 7'b0010100 && mode != 1'b0) begin
+                    Timer <= 7'b0;
+                    countDone <= 1'b1;
+                end
+            end
+        end
+    end
+endmodule
+
+*/
 

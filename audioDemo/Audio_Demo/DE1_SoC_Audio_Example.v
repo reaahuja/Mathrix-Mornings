@@ -1,4 +1,4 @@
-
+//top module
 module DE1_SoC_Audio_Example (
 	// Inputs
 	CLOCK_50,
@@ -90,6 +90,7 @@ parameter D5 = CLOCK_50/587;
 parameter E5 = CLOCK_50/659;
 //parameter E5 = CLOCK_50/(2*659);
 
+//play one note after another once it starts working 
 playSound note1(CLOCK_50, sound1, C4, enable); 
 playSound note2(CLOCK_50, sound2, D5, enable);
 playSound note3(CLOCK_50, sound3, E5, enable);
@@ -183,6 +184,37 @@ module playSound(CLOCK_50, sound, delay, enable);
 
     always @(*) begin 
         sound <= (enable) ? (snd ? 32'd10000000 : -32'd10000000) : 0;
+    end
+endmodule
+
+
+module counter_1_to_3 (
+    input clk,  // 50 MHz clock input
+    output reg [1:0] value  // Output value (2 bits to represent values 1 to 3)
+);
+    // Parameters for counting
+    parameter one_second_count = 50000000;  // 50 million for 1 second
+    reg [25:0] second_counter = 26'b0;  // 26-bit counter for 1 second
+
+    // Initialization
+    initial begin
+        value = 1;  // Start with value 1
+    end
+
+    // Main counter logic
+    always @(posedge clk) begin
+        if (second_counter >= one_second_count - 1) begin
+            second_counter <= 0;  // Reset second counter
+
+            // Increment value counter
+            if (value == 3) begin
+                value <= 1;  // Reset back to 1
+            end else begin
+                value <= value + 1;  // Increment value
+            end
+        end else begin
+            second_counter <= second_counter + 1;  // Increment second counter
+        end
     end
 endmodule
 
