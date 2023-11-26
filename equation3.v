@@ -24,8 +24,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [7:0] xInput, yInput;
 
     wire Load; 
-    wire [2:0] randomNum;
-    random r0(Clock, Load, OngoingTimer[2:0], randomNum); 
+    wire [2:0] randomNum = OngoingTimer[2:0];
+    //random r0(Clock, Load, OngoingTimer[2:0], randomNum); 
 
     control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3), .DataIn(DataIn),
             .correct(correct),
@@ -45,8 +45,7 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
             .randomNum(randomNum),
             .startCompare(startCompare),
             .xInput(xInput), .yInput(yInput),
-            .correct(correct),
-            .startEq3(startEq3)
+            .correct(correct)
             );
 
 endmodule
@@ -305,8 +304,7 @@ module datapath(
                input [2:0] randomNum,
                input startCompare,
                input [7:0] xInput, yInput,
-               output reg correct,
-               output reg startEq3
+               output reg correct
               );
         //registers
         reg [7:0] regExtra, reg1, reg2, reg3, reg4, reg5, reg6;
@@ -490,7 +488,6 @@ module datapath(
         begin: COMPARE
             if (xInput == reg3 && yInput == reg6) begin 
                 correct <= 1'b1;
-                startEq3 <= 1'b0;
             end
             else begin
                 correct <= 1'b0; 
