@@ -4,11 +4,13 @@ Reset: The systems active high reset button
 Go: Signal asserted to input value to system 
 startEq3: A signal to start the system 
 correct: An output signal to determine if the user is correct or not 
+OngoingTimer: The current time
 
 -- Initial Draft is of system without user input and checking --
 */
-module equation3(Clock, Reset, Go, startEq3, correct);
+module equation3(Clock, Reset, Go, startEq3, OngoingTimer, correct);
     input Clock, Reset, Go, startEq3;
+    input [6:0] OngoingTimer;
     output correct; 
 
     wire [3:0] data_in;
@@ -17,29 +19,36 @@ module equation3(Clock, Reset, Go, startEq3, correct);
     wire mux_extra, mux_a, mux_b, initalize; 
     wire [1:0] alu_mini, alu_grand;
 
+    wire Load; 
+    wire [2:0] randomNum;
+    random r0(Clock, Load, OngoingTimer[2:0], randomNum); 
+
     control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
             .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
             .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
-            .correct(correct)
+            .correct(correct),
+            .Load(Load)
             );
     datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
             .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
             .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize),
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
+            .randomNum(randomNum),
             .correct(correct)
             );
 
 endmodule
 
-module control(input Clock, Reset, Go, startEq3,
+module control(input Clock, Reset, Go, startEq3, 
                output reg ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
                output reg [2:0] select_extra, select_a, select_b, 
                output reg mux_extra, mux_a, mux_b, initalize,
                output reg [1:0] alu_mini, alu_grand,
-               output reg correct
+               output reg correct,
+               output reg Load
               );
 
 reg [5:0] current_state, next_state;
@@ -100,16 +109,12 @@ begin: enable_signals
     mux_extra = 1'b1; mux_a = 1'b1; mux_b = 1'b1; initalize = 1'b0;
     alu_mini = 2'b0; alu_grand = 2'b0;
     correct = 1'b0;
+    Load = 1'b1; //put seed 
 
     case(current_state)
         LoadRegisters: begin 
             initalize = 1'b1;
-            // ld_1 = 1'b1;
-            // ld_2 = 1'b1;
-            // ld_3 = 1'b1;
-            // ld_4 = 1'b1;
-            // ld_5 = 1'b1;
-            // ld_6 = 1'b1;
+            Load = 1'b0; //get random numbers
         end
 
         Cycle1_prep: begin
@@ -262,6 +267,7 @@ module datapath(
                input [2:0] select_extra, select_a, select_b, 
                input mux_extra, mux_a, mux_b, initalize,
                input [1:0] alu_mini, alu_grand,
+               input [2:0] randomNum,
                output reg correct
               );
         //registers
@@ -282,13 +288,43 @@ module datapath(
                 reg5 <= 8'b0;
                 reg6 <= 8'b0;
             end
-            else if (initalize == 1'b1)begin 
-                reg1 <= 8'd2;
-                reg2 <= 8'd2;
-                reg3 <= 8'd10;
-                reg4 <= 8'd1;
-                reg5 <= 8'd4;
-                reg6 <= 8'd8;
+            else if (initalize == 1'b1)begin //not working properly, random number initalizes afterwards
+                if (randomNum == 3'b000 || randomNum == 3'b001) begin 
+                    reg1 <= 8'd2;
+                    reg2 <= 8'd2;
+                    reg3 <= 8'd10;
+                    reg4 <= 8'd1;
+                    reg5 <= 8'd4;
+                    reg6 <= 8'd8;
+                end else if (randomNum == 3'b010 || randomNum == 3'b011) begin
+                    reg1 <= 8'd2;
+                    reg2 <= 8'd5;
+                    reg3 <= 8'd14;
+                    reg4 <= 8'd3;
+                    reg5 <= 8'd24;
+                    reg6 <= 8'd21;
+                end else if (randomNum == 3'b100 || randomNum == 3'b101) begin 
+                    reg1 <= 8'd2;
+                    reg2 <= 8'd2;
+                    reg3 <= 8'd12;
+                    reg4 <= 8'd2;
+                    reg5 <= 8'd6;
+                    reg6 <= 8'd24;
+                end else if (randomNum == 3'b110) begin 
+                    reg1 <= 8'd8;
+                    reg2 <= 8'd3;
+                    reg3 <= 8'd6;
+                    reg4 <= 8'd3;
+                    reg5 <= 8'd2;
+                    reg6 <= 8'd4;
+                end else begin 
+                    reg1 <= 8'd7;
+                    reg2 <= 8'd2;
+                    reg3 <= 8'd2;
+                    reg4 <= 8'd1;
+                    reg5 <= 8'd9;
+                    reg6 <= 8'd9;
+                end 
             end
             else if(ld_extra == 1'b1) begin 
                 if(select_extra == 3'd0)
@@ -409,5 +445,24 @@ module datapath(
                     alu_grand_out = mux_b_m / mux_a_m;
                 end
             endcase
+        end
+endmodule
+
+
+module random(Clock, Load, Seed, randomNum);
+    input Clock, Load;
+    input [2:0] Seed; 
+    output reg [2:0] randomNum;
+    
+    always @(posedge Clock)
+        if(Load) begin 
+            if (Seed != 3'b0) 
+                randomNum <= Seed;
+            else
+                randomNum <= 3'b1;
+        end else begin 
+            randomNum[0] = randomNum[2];
+            randomNum[1] = randomNum[0] ^ randomNum[2];
+            randomNum[2] = randomNum[1];
         end
 endmodule
