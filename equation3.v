@@ -24,7 +24,13 @@ control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
            .alu_mini(alu_mini), .alu_grand(alu_grand), 
            .correct(correct)
           );
-
+datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3),
+           .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
+           .select_extra(select_extra), .select_a(select_a), .select_b(select_b),
+           .mux_extra(mux_extra), .mux_a(mux_a), .mux_b(mux_b), .initalize(initalize)
+           .alu_mini(alu_mini), .alu_grand(alu_grand), 
+           .correct(correct)
+          );
 
 endmodule
 
@@ -104,12 +110,12 @@ begin: enable_signals
     case(current_state)
         LoadRegisters: begin 
             initalize = 1'b1;
-            ld_1 = 1'b1;
-            ld_2 = 1'b1;
-            ld_3 = 1'b1;
-            ld_4 = 1'b1;
-            ld_5 = 1'b1;
-            ld_6 = 1'b1;
+            // ld_1 = 1'b1;
+            // ld_2 = 1'b1;
+            // ld_3 = 1'b1;
+            // ld_4 = 1'b1;
+            // ld_5 = 1'b1;
+            // ld_6 = 1'b1;
         end
 
         Cycle1_prep: begin
@@ -253,4 +259,166 @@ begin: state_FFS
     else 
         current state <= next_state;
 end
+endmodule
+
+module datapath(Clock, Reset, Go, startEq3,
+               ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6, 
+               select_extra, select_a, select_b, 
+               mux_extra, mux_a, mux_b, initalize
+               alu_mini, alu_grand,
+               correct
+              );
+        input Clock, Reset, Go, startEq3; 
+        input ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
+        input [2:0] select_extra, select_a, select_b; 
+        input mux_extra, mux_a, mux_b, initalize;
+        input [1:0] alu_mini, alu_grand;
+        output reg correct; //don't need this for now 
+
+        //registers
+        reg [7:0] regExtra, reg1, reg2, reg3, reg4, reg5, reg6;
+        //muxes
+        reg [7:0] select_a_m, select_b_m, mux_extra_m, mux_a_m, mux_b_m;
+        //alus
+        reg [7:0] alu_mini_out, alu_grand_out; 
+
+        //registers logic (and select_extra logic)
+        always @(posedge Clock) begin 
+            if (Reset) begin 
+                regExtra <= 8'b0;
+                reg1 <= 8'b0;
+                reg2 <= 8'b0;
+                reg3 <= 8'b0;
+                reg4 <= 8'b0;
+                reg5 <= 8'b0;
+                reg6 <= 8'b0;
+            end
+            else if (initalize == 1'b1)begin 
+                reg1 <= 8'd2;
+                reg2 <= 8'd2;
+                reg3 <= 8'd10;
+                reg4 <= 8'd1;
+                reg5 <= 8'd4;
+                reg6 <= 8'd8;
+            end
+            else if(ld_extra == 1'b1) begin 
+                if(select_extra == 3'd0)
+                    regExtra <= alu_grand_out;
+                if(select_extra == 3'd1)
+                    regExtra <= reg1;
+                if(select_extra == 3'd2)
+                    regExtra <= reg2;
+                if(select_extra == 3'd3)
+                    regExtra <= reg3;
+                if(select_extra == 3'd4)
+                    regExtra <= reg4;
+                if(select_extra == 3'd5)
+                    regExtra <= reg5;
+                if(select_extra == 3'd6)
+                    regExtra <= reg6;
+            end
+            else begin 
+                if(ld_1)
+                    reg1 <= alu_grand_out
+                if(ld_2)
+                    reg2 <= alu_grand_out
+                if(ld_3)
+                    reg3 <= alu_grand_out
+                if(ld_4)
+                    reg4 <= alu_grand_out
+                if(ld_5)
+                    reg5 <= alu_grand_out
+                if(ld_6)
+                    reg6 <= alu_grand_out
+            end
+        end
+
+        //MUXES
+        always @(*)
+        begin
+            case(select_a)
+                3'd0:
+                    select_a_m = regExtra;
+                3'd1:
+                    select_a_m = reg1;
+                3'd2:
+                    select_a_m = reg2;
+                3'd3:
+                    select_a_m = reg3;
+                3'd4:
+                    select_a_m = reg4;
+                3'd5:
+                    select_a_m = reg5;
+                3'd6:
+                    select_a_m = reg6;
+            endcase
+            case(select_b)
+                3'd0:
+                    select_b_m = regExtra;
+                3'd1:
+                    select_b_m = reg1;
+                3'd2:
+                    select_b_m = reg2;
+                3'd3:
+                    select_b_m = reg3;
+                3'd4:
+                    select_b_m = reg4;
+                3'd5:
+                    select_b_m = reg5;
+                3'd6:
+                    select_b_m = reg6;
+            endcase
+            case(mux_extra)
+                1'b0:
+                    mux_extra_m = select_b_m;
+                1'b1:
+                    mux_extra_m = select_a_m;
+            endcase
+            case(mux_a)
+                1'b0:
+                    mux_a_m = alu_mini_out;
+                1'b1:
+                    mux_a_m = select_a_m;
+            endcase
+            case(mux_b)
+                1'b0:
+                    mux_b_m = alu_mini_out;
+                1'b1:
+                    mux_b_m = select_b_m;
+            endcase
+        end
+        //ALUS
+        always @(*)
+        begin 
+            case(alu_mini)
+                2'b00:
+                    alu_mini_out = regExtra + mux_extra_m;
+                2'b01:
+                    alu_mini_out = regExtra - mux_extra_m;
+                2'b10: //only operation being used 
+                    alu_mini_out = regExtra * mux_extra_m;
+                2'b11:
+                    alu_mini_out = regExtra / mux_extra_m;
+            endcase
+        end
+
+        always @(*)
+        begin 
+            case(alu_grand)
+                2'b00:
+                    alu_grand_out = mux_a_m + mux_b_m;
+                2'b01: begin //used
+                    if (mux_a == 1'b1 && mux_b == 1'b0) begin
+                        alu_grand_out = mux_a_m - mux_b_m;
+                    end else begin
+                        alu_grand_out = mux_b_m - mux_a_m;
+                    end
+                end
+                2'b10:
+                    alu_grand_out = mux_a_m * mux_b_m;
+                2'b11: begin //used
+                    alu_grand_out = mux_b_m / mux_a_m;
+                end
+            endcase
+        end
 endmodule
