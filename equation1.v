@@ -23,7 +23,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     wire [1:0]  alu_select_a, alu_select_b;
     wire [1:0] alu_op;
     wire [7:0] DataResult;
-    wire compareValues, turnOff; 
+    wire compareValues, turnOff, forceReset; 
 
     control C0(
         Clock, 
@@ -37,7 +37,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         ld_alu_out,
         alu_select_a, alu_select_b,
         alu_op,
-        compareValues, turnOff
+        compareValues, turnOff, forceReset
     );
 
     datapath D0(
@@ -49,6 +49,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         ld_alu_out,
         alu_select_a, alu_select_b,
         alu_op,
+        forceReset,
         correct, startEq1, 
         DataResult
     );
@@ -66,7 +67,7 @@ module control(
         output reg ld_alu_out,
         output reg [1:0] alu_select_a, alu_select_b,
         output reg [1:0] alu_op,
-        output reg compareValues, turnOff
+        output reg compareValues, turnOff, forceReset
     );
 
     reg [5:0] current_state, next_state;
@@ -83,7 +84,8 @@ module control(
                 CYCLE_2       = 5'd9,
                 CYCLE_3       = 5'd10,
                 COMPARE       = 5'd11, 
-                COMPLETE      = 5'd12;
+                COMPLETE      = 5'd12, 
+                resetSystem   = 5'd13;
 
     // Next state logic aka our state table
     always@(*)
@@ -100,8 +102,9 @@ module control(
                 CYCLE_1: next_state = CYCLE_2;
                 CYCLE_2: next_state = CYCLE_3;
                 CYCLE_3: next_state = COMPARE;
-                COMPARE: next_state = correct ? COMPLETE : getA; // we will be done our two operations, start over after
-                COMPLETE: next_state = startEq1 ? getA : COMPLETE;
+                COMPARE: next_state = COMPLETE; // we will be done our two operations, start over after
+                COMPLETE: next_state = correct? COMPLETE : resetSystem;
+                resetSystem: next_state = getA;
             default:     next_state = getA;
         endcase
     end // state_table
@@ -122,9 +125,11 @@ module control(
         alu_op       = 2'b0;
         compareValues = 1'b0; 
         turnOff = 1'b0;
+        forceReset = 1'b0;
 
         case (current_state)
             getA: begin
+                forceReset = 1'b0;
                 ld_a = 1'b1;
                 end
             LOAD_X: begin
@@ -166,13 +171,16 @@ module control(
             COMPLETE: begin //done
                 turnOff = 1'b1; //for VGA
             end
+            resetSystem: begin
+                forceReset = 1'b1;
+            end
         endcase
     end // enable_signals
 
     // current_state registers
     always@(posedge Clock)
     begin: state_FFs
-        if(Reset)
+        if(Reset || forceReset)
             current_state <= getA;
         else
             current_state <= next_state;
@@ -189,6 +197,7 @@ module datapath(
         input ld_alu_out,
         input [1:0] alu_select_a, alu_select_b,
         input [1:0] alu_op,
+        input forceReset,
         output reg correct, startEq1,
         output reg [7:0] data_result
     );
@@ -203,7 +212,7 @@ module datapath(
 
     // Registers a, b, c, x with respective input logic
     always@(posedge Clock) begin
-        if(Reset) begin
+        if(Reset || forceReset) begin
             x <= 8'b0;
             y <= 8'b0;
             z <= 8'b0;
@@ -223,7 +232,7 @@ module datapath(
 
     // Output result register
     always@(posedge Clock) begin
-        if(Reset) begin
+        if(Reset || forceReset) begin
             data_result <= 8'b0;
         end
         else
