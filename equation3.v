@@ -24,8 +24,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [7:0] xInput, yInput;
 
     wire Load; 
-    wire [2:0] randomNum = OngoingTimer[2:0];
-    //random r0(Clock, Load, OngoingTimer[2:0], randomNum); 
+    wire [2:0] randomNum;
+    random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
 
     control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3), .DataIn(DataIn),
             .correct(correct),
@@ -113,8 +113,8 @@ begin: state_table
         Cycle4_a: next_state = Cycle4_b;
         Cycle4_b: next_state = Cycle4_c;
         Cycle4_c: next_state = Compare;
-        Compare: next_state = correct ? Done : LoadRegisters;
-        Done: next_state = !startEq3 ? LoadRegisters : Done; 
+        Compare: next_state = Done;
+        Done: next_state = correct ? LoadRegisters : Done; 
     endcase
 end
 /* All Signals:
@@ -129,21 +129,32 @@ begin: enable_signals
     select_extra = 3'b0; select_a = 3'b0; select_b = 3'b0; 
     mux_extra = 1'b1; mux_a = 1'b1; mux_b = 1'b1; initalize = 1'b0;
     alu_mini = 2'b0; alu_grand = 2'b0;
-    Load = 1'b1; //put seed 
+    Load = 1'b0; //put seed 
     startCompare = 1'b0;
 
     case(current_state)
+    // /*
+    //     setRandom: begin 
+    //         Load = 1'b1;
+    //     end
+
+    //     setRandom_wait: begin 
+    //         Load = 1'b0;
+    //     end
+    // */
         LoadRegisters: begin 
-            initalize = 1'b1;
-            Load = 1'b0; //get random numbers
+            //initalize = 1'b1;
+            Load = 1'b1; //get random numbers
             //correct = 1'b0;
         end
 
         getX_wait: begin 
+            Load = 1'b0;
             xInput = DataIn;
         end
 
         getY_wait: begin 
+            initalize = 1'b1;
             yInput = DataIn;
         end
 
@@ -496,20 +507,23 @@ module datapath(
 endmodule
 
 
-module random(Clock, Load, Seed, randomNum);
-    input Clock, Load;
+module random(Clock, Load, Seed, randomNum, initalize);
+    input Clock, Load, initalize;
     input [2:0] Seed; 
     output reg [2:0] randomNum;
     
-    always @(posedge Clock)
+    always @(*)
         if(Load) begin 
             if (Seed != 3'b0) 
                 randomNum <= Seed;
             else
                 randomNum <= 3'b1;
-        end else begin 
-            randomNum[0] = randomNum[2];
-            randomNum[1] = randomNum[0] ^ randomNum[2];
-            randomNum[2] = randomNum[1];
+        end else if (initalize == 1'b1) begin 
+            randomNum[0] = randomNum[2]; 
+            //$display ("Random[0] = %b, Random[2] = %b", randomNum[0], randomNum[2]);
+            randomNum[1] = randomNum[1] ^ randomNum[2]; 
+            //$display ("Random[1] = %b", randomNum[1]);
+            randomNum[2] = randomNum[1]; 
+            //$display ("Random[2] = %b", randomNum[2]);
         end
 endmodule
