@@ -27,6 +27,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [2:0] randomNum;
     random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
 
+    wire forceReset;
+
     control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3), .DataIn(DataIn),
             .correct(correct),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
@@ -35,7 +37,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
             .Load(Load), 
             .xInput(xInput), .yInput(yInput), 
-            .startCompare(startCompare)
+            .startCompare(startCompare), 
+            .forceReset(forceReset)
             );
     datapath d0(.Clock(Clock), .Reset(Reset), .Go(Go),
             .ld_extra(ld_extra), .ld_1(ld_1), .ld_2(ld_2), .ld_3(ld_3), .ld_4(ld_4), .ld_5(ld_5), .ld_6(ld_6),
@@ -44,6 +47,7 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
             .alu_mini(alu_mini), .alu_grand(alu_grand), 
             .randomNum(randomNum),
             .startCompare(startCompare),
+            .forceReset(forceReset),
             .xInput(xInput), .yInput(yInput),
             .correct(correct)
             );
@@ -59,40 +63,47 @@ module control(input Clock, Reset, Go, startEq3,
                output reg [1:0] alu_mini, alu_grand,
                output reg Load,
                output reg [7:0] xInput, yInput,
-               output reg startCompare
+               output reg startCompare, 
+               output reg forceReset
               );
 
 reg [5:0] current_state, next_state;
 
-localparam LoadRegisters = 5'd0,
-           getX = 5'd1,
-           getX_wait = 5'd2,
-           getY = 5'd3,
-           getY_wait = 5'd4,
-           Cycle1_prep = 5'd5,
-           Cycle1_a = 5'd6,
-           Cycle1_b = 5'd7,
-           Cycle1_c = 5'd8,
-           Cycle2_prep = 5'd9,
-           Cycle2_a = 5'd10,
-           Cycle2_b = 5'd11,
-           Cycle2_c = 5'd12,
-           Cycle3_prep = 5'd13,
-           Cycle3_a = 5'd14,
-           Cycle3_b = 5'd15,
-           Cycle3_c = 5'd16,
-           Cycle4_prep = 5'd17,
-           Cycle4_a = 5'd18,
-           Cycle4_b = 5'd19,
-           Cycle4_c = 5'd20,
-           Compare = 5'd21,
-           Done = 5'd22;
+localparam  getRandom = 5'd0,
+            getRandom_wait = 5'd1,
+            LoadRegisters = 5'd2,
+            getX = 5'd3,
+            getX_wait = 5'd4,
+            getY = 5'd5,
+            getY_wait = 5'd6,
+            Cycle1_prep = 5'd7,
+            Cycle1_a = 5'd8,
+            Cycle1_b = 5'd9,
+            Cycle1_c = 5'd10,
+            Cycle2_prep = 5'd11,
+            Cycle2_a = 5'd12,
+            Cycle2_b = 5'd13,
+            Cycle2_c = 5'd14,
+            Cycle3_prep = 5'd15,
+            Cycle3_a = 5'd16,
+            Cycle3_b = 5'd17,
+            Cycle3_c = 5'd18,
+            Cycle4_prep = 5'd19,
+            Cycle4_a = 5'd20,
+            Cycle4_b = 5'd21,
+            Cycle4_c = 5'd22,
+            Compare = 5'd23,
+            Done = 5'd24, 
+            resetSystem = 5'd25;
+
 
 //need to add comparison and user input states 
 always @(*)
 begin: state_table
     case (current_state)
-        LoadRegisters: next_state = startEq3 ? getX : LoadRegisters;
+        getRandom:  next_state = startEq3 ? getRandom_wait : getRandom;
+        getRandom_wait: next_state = LoadRegisters;
+        LoadRegisters: next_state = getX;
         getX: next_state = Go ? getX_wait : getX;
         getX_wait: next_state = Go ? getX_wait : getY;
         getY: next_state = Go ? getY_wait : getY;
@@ -114,7 +125,8 @@ begin: state_table
         Cycle4_b: next_state = Cycle4_c;
         Cycle4_c: next_state = Compare;
         Compare: next_state = Done;
-        Done: next_state = correct ? LoadRegisters : Done; 
+        Done: next_state = correct ? Done : resetSystem; 
+        resetSystem: next_state = getRandom;
     endcase
 end
 /* All Signals:
@@ -129,32 +141,29 @@ begin: enable_signals
     select_extra = 3'b0; select_a = 3'b0; select_b = 3'b0; 
     mux_extra = 1'b1; mux_a = 1'b1; mux_b = 1'b1; initalize = 1'b0;
     alu_mini = 2'b0; alu_grand = 2'b0;
-    Load = 1'b0; //put seed 
+    //Load = 1'b0; //put seed 
     startCompare = 1'b0;
+    forceReset = 1'b0;
 
     case(current_state)
-    // /*
-    //     setRandom: begin 
-    //         Load = 1'b1;
-    //     end
-
-    //     setRandom_wait: begin 
-    //         Load = 1'b0;
-    //     end
-    // */
-        LoadRegisters: begin 
-            //initalize = 1'b1;
-            Load = 1'b1; //get random numbers
-            //correct = 1'b0;
+    
+        getRandom: begin 
+            Load = 1'b1;
         end
 
-        getX_wait: begin 
+        getRandom_wait: begin 
             Load = 1'b0;
+        end
+    
+        LoadRegisters: begin 
+            initalize = 1'b1;
+        end
+
+        getX: begin 
             xInput = DataIn;
         end
 
-        getY_wait: begin 
-            initalize = 1'b1;
+        getY: begin 
             yInput = DataIn;
         end
 
@@ -293,13 +302,17 @@ begin: enable_signals
         // Done: begin 
         //     correct = 1'b1;
         // end
+
+        resetSystem: begin 
+            forceReset = 1'b1;
+        end
     endcase
 end
 
     always @(posedge Clock)
     begin: state_FFS
-        if(Reset)
-            current_state <= LoadRegisters; 
+        if(Reset || forceReset)
+            current_state <= getRandom; 
         else 
             current_state <= next_state;
     end
@@ -314,6 +327,7 @@ module datapath(
                input [1:0] alu_mini, alu_grand,
                input [2:0] randomNum,
                input startCompare,
+               input forceReset,
                input [7:0] xInput, yInput,
                output reg correct
               );
@@ -326,7 +340,7 @@ module datapath(
 
         //registers logic (and select_extra logic)
         always @(posedge Clock) begin 
-            if (Reset) begin 
+            if (Reset || forceReset) begin 
                 regExtra <= 8'b0;
                 reg1 <= 8'b0;
                 reg2 <= 8'b0;
