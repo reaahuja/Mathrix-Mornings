@@ -32,7 +32,7 @@ module DE1_SoC_Audio_Example (
 // Inputs
 input				CLOCK_50;
 input		[3:0]	KEY;
-input		[3:0]	SW;
+input		[6:0]	SW;
 
 input				AUD_ADCDAT;
 
@@ -72,6 +72,17 @@ reg snd;
 
 // State Machine Registers
 
+//Notes
+localparam 
+C4 =	20'd191113,
+D4 =	20'd170262,
+E4 =	20'd151686,
+F4 =	20'd143173,
+G4 =	20'd127553,
+A4 =	20'd113636,
+B4 =	20'd101238;
+
+
 /*****************************************************************************
  *                         Finite State Machine(s)                           *
  *****************************************************************************/
@@ -80,22 +91,34 @@ reg snd;
 /*****************************************************************************
  *                             Sequential Logic                              *
  *****************************************************************************/
-wire enable = SW[0];
-wire [31:0] sound1, sound2, sound3, sound4, sound5;
+wire enableC4;
+wire enableG4;
+wire enableA4;
+wire enableF4;
+wire enableE4;
+wire enableD4;
 
-parameter C4 = CLOCK_50/262; 
-//parameter C4 = CLOCK_50/(2*261); 
-parameter D5 = CLOCK_50/587;
-//parameter D5 = ClOCK_50/(2*587);
-parameter E5 = CLOCK_50/659;
-//parameter E5 = CLOCK_50/(2*659);
+wire enableSong = SW[0];
 
+wire [3:0] value;
+
+counter c0(CLOCK_50, value);
+
+twinkle twinkleSong(CLOCK_50, Reset, value, enableSong, enableC4, enableG4, enableA4, enableF4, enableE4, enableD4);
+hotCross hotCrossBuns(CLOCK_50, Reset, value, !enableSong, enableC4, enableG4, enableA4, enableF4, enableE4, enableD4);
+
+wire [31:0] soundC4, soundG4, soundA4, soundF4, soundE4, soundD4;
+parameter CLOCK = 50000000;
+
+
+playSound noteC4(CLOCK_50, soundC4, C4, enableC4);
+playSound noteG4(CLOCK_50, soundG4, G4, enableG4);
+playSound noteA4(CLOCK_50, soundA4, A4, enableA4);
+playSound noteF4(CLOCK_50, soundF4, F4, enableF4);
+playSound noteE4(CLOCK_50, soundE4, E4, enableE4);
+playSound noteD4(CLOCK_50, soundD4, D4, enableD4);
 //play one note after another once it starts working 
-playSound note1(CLOCK_50, sound1, C4, enable); 
-playSound note2(CLOCK_50, sound2, D5, enable);
-playSound note3(CLOCK_50, sound3, E5, enable);
-playSound note4(CLOCK_50, sound4, D5, enable);
-playSound note5(CLOCK_50, sound5, C5, enable);
+
 
 
 // always @(posedge CLOCK_50)
@@ -115,8 +138,8 @@ playSound note5(CLOCK_50, sound5, C5, enable);
 
 assign read_audio_in			= audio_in_available & audio_out_allowed;
 
-assign left_channel_audio_out	= left_channel_audio_in+sound1+sound2+sound3+sound4+sound5;
-assign right_channel_audio_out	= right_channel_audio_in+sound1+sound2+sound3+sound4+sound5;
+assign left_channel_audio_out	= left_channel_audio_in+soundC4+soundG4+soundA4+soundF4+soundE4+soundD4;
+assign right_channel_audio_out	= right_channel_audio_in+soundC4+soundG4+soundA4+soundF4+soundE4+soundD4;
 assign write_audio_out			= audio_in_available & audio_out_allowed;
 
 /*****************************************************************************
@@ -168,9 +191,9 @@ endmodule
 module playSound(CLOCK_50, sound, delay, enable); 
     input CLOCK_50;
     output reg signed [31:0] sound;
-    input [20:0] delay;
+    input [19:0] delay;
     input enable;
-    reg signed [20:0] delay_cnt;
+    reg signed [19:0] delay_cnt;
     reg snd;
 
     always @(posedge CLOCK_50) begin 
@@ -188,34 +211,138 @@ module playSound(CLOCK_50, sound, delay, enable);
 endmodule
 
 
-module counter_1_to_3 (
+module counter (
     input clk,  // 50 MHz clock input
-    output reg [1:0] value  // Output value (2 bits to represent values 1 to 3)
+    output reg [3:0] value  
 );
-    // Parameters for counting
-    parameter one_second_count = 50000000;  // 50 million for 1 second
+    parameter one_second_count = 50000000;  
     reg [25:0] second_counter = 26'b0;  // 26-bit counter for 1 second
 
-    // Initialization
     initial begin
-        value = 1;  // Start with value 1
+        value = 0; 
     end
 
     // Main counter logic
     always @(posedge clk) begin
         if (second_counter >= one_second_count - 1) begin
-            second_counter <= 0;  // Reset second counter
+            second_counter <= 0;  
 
-            // Increment value counter
-            if (value == 3) begin
-                value <= 1;  // Reset back to 1
+            if (value == 15) begin
+                value <= 0;  // Reset back to 1
             end else begin
-                value <= value + 1;  // Increment value
+                value <= value + 1; 
             end
         end else begin
-            second_counter <= second_counter + 1;  // Increment second counter
+            second_counter <= second_counter + 1;  
         end
     end
 endmodule
+
+module twinkle(input CLOCK_50, input Reset,
+               input [3:0] value,
+               input Go,
+               output reg enableC4, 
+               output reg enableG4, 
+               output reg enableA4, 
+               output reg enableF4, 
+               output reg enableE4, 
+               output reg enableD4);
+
+    always @(Go or value) begin 
+            if(value >= 4'd0 && value < 4'd2) begin 
+                enableC4 = 1'b1;
+                // Disable other notes
+                enableG4 = 1'b0;
+                enableA4 = 1'b0;
+                enableF4 = 1'b0;
+                enableE4 = 1'b0;
+                enableD4 = 1'b0;
+            end else if (value >= 4'd2 && value < 4'd4) begin 
+                enableG4 = 1'b1;
+                // Disable other notes except C4
+                enableC4 = 1'b0;
+            end else if (value >= 4'd4 && value < 4'd6) begin 
+                enableA4 = 1'b1;
+                // Disable other notes except G4
+                enableG4 = 1'b0;
+            end else if (value == 4'd6)begin 
+                enableG4 = 1'b1;
+                // Disable other notes except A4
+                enableA4 = 1'b0;
+            end else if (value >= 4'd7 && value < 4'd9)begin 
+                enableF4 = 1'b1;
+                // Disable other notes except G4
+                enableG4 = 1'b0;
+            end else if (value >= 4'd9 && value < 4'd11)begin 
+                enableE4 = 1'b1;
+                // Disable other notes except F4
+                enableF4 = 1'b0;
+            end else if (value >= 4'd11 && value < 4'd13)begin 
+                enableD4 = 1'b1;
+                // Disable other notes except E4
+                enableE4 = 1'b0;
+            end else if (value >= 4'd13 && value < 4'd15)begin 
+                enableC4 = 1'b1;
+                // Disable other notes except D4
+                enableD4 = 1'b0;
+            end else begin 
+                // Disable all notes
+                enableC4 = 1'b0;
+                enableG4 = 1'b0;
+                enableA4 = 1'b0;
+                enableF4 = 1'b0;
+                enableE4 = 1'b0;
+                enableD4 = 1'b0;
+            end
+        end 
+endmodule 
+
+
+
+module hotCross(input CLOCK_50, input Reset,
+               input [3:0] value,
+               input Go,
+               output reg enableC4, 
+               output reg enableG4, 
+               output reg enableA4, 
+               output reg enableF4, 
+               output reg enableE4, 
+               output reg enableD4);
+
+    always @(Go or value) begin 
+            if(value == 4'd0) begin 
+                enableE4 = 1'b1;
+            end else if (value == 4'd1) begin 
+                enableD4 = 1'b1;
+                enableE4 = 1'b0;
+            end else if (value == 4'd2) begin 
+                enableC4 = 1'b1;
+                enableD4 = 1'b0;
+            end else if (value == 4'd3)begin 
+                enableG4 = 1'b1;
+                enableC4 = 1'b0;
+            end else if (value == 4'd4)begin 
+                enableF4 = 1'b1;
+                enableG4 = 1'b0;
+            end else if (value == 4'd5)begin 
+                enableE4 = 1'b1;
+                enableF4 = 1'b0;
+            end else if (value >= 4'd6 && value < 4'd9)begin 
+                enableD4 = 1'b1;
+                enableE4 = 1'b0;
+            end else if (value >= 4'd9 && value < 4'd13)begin 
+                enableC4 = 1'b1;
+                enableD4 = 1'b0;
+            end else begin 
+                enableC4 = 1'b0;
+                enableG4 = 1'b0;
+                enableA4 = 1'b0;
+                enableF4 = 1'b0;
+                enableE4 = 1'b0;
+                enableD4 = 1'b0;
+            end
+        end
+endmodule
+
 
 
