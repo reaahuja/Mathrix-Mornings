@@ -5,7 +5,7 @@
 //Incorrect and SequenceFinish are wires for the VGA 
 module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput);
     input wire Clock, Reset, Start, Go;
-    input wire [6:0] DataIn;  
+    input wire [7:0] DataIn;  
     output wire [6:0] CounterOutput; //20 second counter
 
     wire countDone, audioDone, correct, Wrong, Sequencer, startCounter, extra;
@@ -34,6 +34,10 @@ module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput);
     .Timer(CounterValue), 
     .countDone(extra)  
     );
+
+    equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct);
+    equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct);
+    equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
 endmodule 
 
