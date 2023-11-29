@@ -3,12 +3,22 @@
 //Go is a key 
 //HEX0 = output 20-second counter
 //Incorrect and SequenceFinish are wires for the VGA 
-module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput);
+
+module alarmClock(CLOCK_50, SW, KEY, LEDR);
+    input CLOCK_50;
+    input [9:0] SW;
+    input [1:0] KEY;
+    output [7:0] LEDR;
+    topFSM startAlarm(CLOCK_50, KEY[0], SW[9], SW[7:0], KEY[1], LEDR[7:1], LEDR[0]);
+endmodule
+
+module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput, correct);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [6:0] CounterOutput; //20 second counter
+    output wire correct; 
 
-    wire countDone, audioDone, correct, Wrong, Sequencer, startCounter, extra;
+    wire countDone, audioDone, Wrong, Sequencer, startCounter, extra;
     //equations wires 
     wire startEq1, startEq2, startEq3; 
     wire [6:0] CounterValue; //on going counter
