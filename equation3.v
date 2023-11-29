@@ -24,9 +24,11 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [7:0] xInput, yInput;
 
     wire Load; 
+    wire [2:0] randomNum = 3'b0;
+    /* COMMENTED FOR TESTING 
     wire [2:0] randomNum;
     random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
-
+    */
     wire forceReset;
 
     control c0(.Clock(Clock), .Reset(Reset), .Go(Go), .startEq3(startEq3), .DataIn(DataIn),

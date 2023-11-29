@@ -3,7 +3,7 @@
 //Go is a key 
 //HEX0 = output 20-second counter
 //Incorrect and SequenceFinish are wires for the VGA 
-
+//FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
 module alarmClock(CLOCK_50, SW, KEY, LEDR);
     input CLOCK_50;
     input [9:0] SW;
@@ -24,6 +24,8 @@ module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput, correct);
     wire [6:0] CounterValue; //on going counter
 
     topControl t0(Clock, Reset, Start, Go, DataIn, countDone, audioDone, correct, Wrong, Sequencer, startCounter, startEq1, startEq2, startEq3);
+    datapath d0(Reset, startEq1, startEq2, startEq3, correct, Wrong); 
+
     //topData d0(Clock, Reset, Start, Go, countDone, audioDone, correct, Wrong, Sequencer, DataIn, CounterOutput);
 
     //counters 
@@ -48,6 +50,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, CounterOutput, correct);
     equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct);
     equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct);
     equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
+    sequencer sequencer(startSequencer, Go, DataIn, Sequencer);
 
 endmodule 
 
@@ -134,6 +137,21 @@ module topControl(
 
 endmodule
 
+module datapath(input Reset, input wire startEq1, input wire startEq2, input wire startEq3, input wire correct, output reg Wrong); 
+always @(*) begin 
+    if (startEq1 && !correct) begin 
+        Wrong = 1'b1;
+    end else if (startEq2 && !correct) begin 
+        Wrong = 1'b1;
+    end else if (startEq3 && !correct) begin 
+        Wrong = 1'b1;
+    end else if(Reset) begin 
+        Wrong = 1'b0;
+    end else begin 
+        Wrong = 1'b0;
+    end
+end
+endmodule
 
 //HAVE TO CHANGE SO IT GOES EVERY SECOND -- code underneath 
 module counter(
@@ -153,8 +171,8 @@ module counter(
     end else if (Enable) begin
         Timer <= CounterValue;
         CounterValue <= CounterValue + 1;
-        
-        if(CounterValue == 7'b0010100 && mode != 1'b0) begin
+        //CHANGED TO 5 SECONDS FOR TESTING 
+        if(CounterValue == 7'b0000101 && mode != 1'b0) begin
             Timer <= 7'b0;
             countDone <= 1'b1;
         end 

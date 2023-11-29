@@ -15,7 +15,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     input [6:0] OngoingTimer;
     input [7:0] DataIn;
     input startEq1;
-    output correct;
+    output wire correct;
 
     // lots of wires to connect our datapath and control
     wire ld_x, ld_y, ld_z, ld_a, ld_r;
@@ -285,7 +285,8 @@ module datapath(
     //comparison 
     always @(*)
     begin: COMPARE
-        if (compareValues == 1'b1 && a == data_result) begin 
+        //a == data_result but changed for testing
+        if (compareValues == 1'b1 && a == 8'b0) begin 
             correct <= 1'b1;
             startEq1 <= 1'b0;
         end
