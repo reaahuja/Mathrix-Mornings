@@ -5,7 +5,7 @@ module topLevel(CLOCK_50, KEY, SW, LEDR);
     output wire [8:0] LEDR;
     //input wire [6:0] EXTRA;
 
-    wire [6:0] testingWire = 7'b0000101; 
+    wire [6:0] testingWire = 7'b0000111; 
     // assign testingWire = 7'b0000001;
 
     equation3 intiate(.Clock(CLOCK_50), 
@@ -14,11 +14,11 @@ module topLevel(CLOCK_50, KEY, SW, LEDR);
                       .startEq3(SW[8]), 
                       .OngoingTimer(testingWire),
                       .DataIn(SW[7:0]), 
-                      .correct(LEDR[0]));
+                      .correct(LEDR[0]), .randomNum(LEDR[4:1]));
 endmodule
 
 
-module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
+module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct, randomNum);
     input wire Clock, Reset, Go, startEq3;
     input wire [6:0] OngoingTimer;
     input wire [7:0] DataIn;
@@ -33,9 +33,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [7:0] xInput, yInput;
 
     wire Load; 
-    //wire [2:0] randomNum; 
-    wire [2:0] randomNum = 3'b111;
-    //random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
+    output wire [2:0] randomNum; 
+    random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
 
     wire forceReset;
 
@@ -558,4 +557,3 @@ module random(Clock, Load, Seed, randomNum, initalize);
             //$display ("Random[2] = %b", randomNum[2]);
         end
 endmodule
-
