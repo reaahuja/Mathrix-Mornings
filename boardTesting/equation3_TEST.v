@@ -9,8 +9,8 @@ module topLevel(CLOCK_50, KEY, SW, LEDR);
     // assign testingWire = 7'b0000001;
 
     equation3 intiate(.Clock(CLOCK_50), 
-                      .Reset(KEY[0]), 
-                      .Go(KEY[1]), 
+                      .Reset(~KEY[0]), 
+                      .Go(~KEY[1]), 
                       .startEq3(SW[8]), 
                       .OngoingTimer(testingWire),
                       .DataIn(SW[7:0]), 
@@ -33,8 +33,9 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
     wire [7:0] xInput, yInput;
 
     wire Load; 
-    wire [2:0] randomNum;
-    random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
+    //wire [2:0] randomNum; 
+    wire [2:0] randomNum = 3'b111;
+    //random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
 
     wire forceReset;
 
@@ -446,6 +447,7 @@ module datapath(
                     select_a_m = reg5;
                 3'd6:
                     select_a_m = reg6;
+                default: select_a_m = 8'b0;
             endcase
             case(select_b)
                 3'd0:
@@ -462,24 +464,28 @@ module datapath(
                     select_b_m = reg5;
                 3'd6:
                     select_b_m = reg6;
+                default: select_b_m = 8'b0;
             endcase
             case(mux_extra)
                 1'b0:
                     mux_extra_m = select_b_m;
                 1'b1:
                     mux_extra_m = select_a_m;
+                default: mux_extra_m = 8'b0;
             endcase
             case(mux_a)
                 1'b0:
                     mux_a_m = alu_mini_out;
                 1'b1:
                     mux_a_m = select_a_m;
+                default: mux_a_m = 8'b0;
             endcase
             case(mux_b)
                 1'b0:
                     mux_b_m = alu_mini_out;
                 1'b1:
                     mux_b_m = select_b_m;
+                default: mux_b_m = 8'b0;
             endcase
         end
         //ALUS
@@ -494,6 +500,7 @@ module datapath(
                     alu_mini_out = regExtra * mux_extra_m;
                 2'b11:
                     alu_mini_out = regExtra / mux_extra_m;
+                default: alu_mini_out = 8'b0;
             endcase
         end
 
@@ -514,6 +521,7 @@ module datapath(
                 2'b11: begin //used
                     alu_grand_out = mux_b_m / mux_a_m;
                 end
+                default: alu_grand_out = 8'b0;
             endcase
         end
 
