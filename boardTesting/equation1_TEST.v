@@ -37,7 +37,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     output wire correct;
 
     // lots of wires to connect our datapath and control
-    output wire ld_x, ld_y, ld_z, ld_a, ld_r;
+    wire ld_x, ld_y, ld_z, ld_a, ld_r;
     wire ld_alu_out;
     wire [1:0]  alu_select_a, alu_select_b;
     wire [1:0] alu_op;
@@ -218,7 +218,7 @@ module datapath(
         input [1:0] alu_op,
         input forceReset,
         output reg correct,
-        output reg [7:0] data_result, 
+        output reg [7:0] data_result 
     );
 
     // input registers
