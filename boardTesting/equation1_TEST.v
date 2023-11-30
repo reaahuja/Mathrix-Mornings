@@ -8,6 +8,24 @@ startEq1: Queue to start FSM
 correct: Determining whether the input was correct or not 
 */
 
+module topLevel(CLOCK_50, KEY, SW, LEDR);
+ input wire CLOCK_50;
+ input wire [1:0] KEY;
+ input wire [8:0] SW;
+ output wire [8:0] LEDR; 
+
+ wire [6:0] testingWire; 
+ assign testingWire = 7'b00000101;
+
+ equation1 initiate(.Clock(CLOCK_50), 
+                    .Reset(KEY[0]), 
+                    .Go(KEY[1]), 
+                    .OngoingTimer(testingWire), 
+                    .DataIn(SW[7:0]), 
+                    .startEq1(SW[8]), 
+                    .correct(LEDR[0]));
+endmodule
+
 module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     input Clock;
     input Reset;
@@ -15,7 +33,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     input [6:0] OngoingTimer;
     input [7:0] DataIn;
     input startEq1;
-    output wire correct;
+    output correct;
 
     // lots of wires to connect our datapath and control
     wire ld_x, ld_y, ld_z, ld_a, ld_r;
@@ -87,7 +105,7 @@ module control(
                 COMPLETE      = 5'd12, 
                 resetSystem   = 5'd13;
 
-    // Next state logic aka our state table //ld_A stayed high
+    // Next state logic aka our state table
     always@(*)
     begin: state_table
             case (current_state)
