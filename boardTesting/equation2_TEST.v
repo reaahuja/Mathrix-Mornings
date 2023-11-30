@@ -8,7 +8,7 @@ startEq2: Queue to start FSM
 correct: Determining whether the input was correct or not 
 */
 
-module topLevel(CLOCK_50, KEY, SW, LEDR);
+module equation2(CLOCK_50, KEY, SW, LEDR);
     input wire CLOCK_50; 
     input wire [1:0] KEY; 
     input wire [8:0] SW;
@@ -17,16 +17,16 @@ module topLevel(CLOCK_50, KEY, SW, LEDR);
     wire [6:0] testingWire; 
     assign testingWire = 7'b0000001;
 
-    equation2 initiate(.Clock(CLOCK_50), 
-                       .Reset(KEY[0]), 
-                       .Go(KEY[1]), 
+    equation initiate(.Clock(CLOCK_50), 
+                       .Reset(~KEY[0]), 
+                       .Go(~KEY[1]), 
                        .OngoingTimer(testingWire), 
                        .DataIn(SW[7:0]), 
                        .startEq2(SW[8]), 
                        .correct(LEDR[0]));
 endmodule
 
-module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
+module equation(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
     input Clock;
     input Reset;
     input Go;
@@ -69,7 +69,7 @@ module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
         alu_select_a, alu_select_b,
         alu_op,
         forceReset,
-        correct, startEq2, 
+        correct, 
         DataResult
     );
 
@@ -218,7 +218,7 @@ module datapath(
         input [1:0] alu_select_a, alu_select_b,
         input [1:0] alu_op,
         input forceReset,
-        output reg correct, startEq2,
+        output reg correct,
         output reg [7:0] data_result
     );
 
@@ -308,7 +308,6 @@ module datapath(
         // a == data_result but changing for testing 
         if (compareValues == 1'b1 && a == data_result) begin 
             correct <= 1'b1;
-            startEq2 <= 1'b0;
         end
         else if (a != data_result)begin
             correct <= 1'b0; 
