@@ -13,7 +13,6 @@ force topLevel/KEY[0] 1 0ns, 0 4ns
 # Start Clock and Go signals
 force topLevel/CLOCK_50 0 0ns , 1 {1ns} -r 2ns
 force topLevel/SW[8] 1'b1
-force topLevel/EXTRA[6:0] 7'b0000101
 force topLevel/KEY[1] 1'b0
 run 5ns
 

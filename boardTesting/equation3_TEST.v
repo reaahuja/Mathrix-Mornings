@@ -1,18 +1,18 @@
-module topLevel(CLOCK_50, KEY, SW, LEDR, EXTRA); 
+module topLevel(CLOCK_50, KEY, SW, LEDR); 
     input wire CLOCK_50; 
     input wire [1:0] KEY;
     input wire [8:0] SW; 
     output wire [8:0] LEDR;
-    input wire [6:0] EXTRA;
+    //input wire [6:0] EXTRA;
 
-    // wire [6:0] testingWire; 
+    wire [6:0] testingWire = 7'b0000101; 
     // assign testingWire = 7'b0000001;
 
     equation3 intiate(.Clock(CLOCK_50), 
                       .Reset(KEY[0]), 
                       .Go(KEY[1]), 
                       .startEq3(SW[8]), 
-                      .OngoingTimer(EXTRA[6:0]),
+                      .OngoingTimer(testingWire),
                       .DataIn(SW[7:0]), 
                       .correct(LEDR[0]));
 endmodule
