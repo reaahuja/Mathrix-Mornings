@@ -4,18 +4,19 @@
 //HEX0 = output 20-second counter
 //Incorrect and SequenceFinish are wires for the VGA 
 //FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
+//INVERTED KEYS, HARDCODED COUNTERVALUE AND (FUTURE) USE DIFFERENT LEDS FOR CORRECT IN DIFFERENT MODULES
 module alarmClock(CLOCK_50, SW, KEY, LEDR);
     input wire CLOCK_50;
     input wire [9:0] SW;
     input wire [1:0] KEY;
     output wire [7:0] LEDR;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[0]));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[2:0]));
 endmodule
 
 module topFSM(Clock, Reset, Start, DataIn, Go, correct);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
-    output wire correct; 
+    output wire [2:0] correct; 
 
     wire audioDone, Wrong, Sequencer, startCounter, extra;
     //equations wires 
@@ -25,7 +26,8 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct);
     topControl t0(Clock, Reset, Start, Go, correct, audioDone, Wrong, Sequencer, startCounter, startEq1, startEq2, startEq3);
     topDatapath d0(Reset, startEq1, startEq2, startEq3, correct, Wrong); 
 
-    equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct);
+    equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct[0]);
+    
     //equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct);
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
@@ -53,9 +55,9 @@ module topControl(
       case (current_state) //Syntax, iLoadX ? S_LOAD_X_WAIT : S_LOAD_X; 
             STARTING: next_state = Start ? AUDIO : STARTING;
             AUDIO: next_state = EQUATION_1;
-            EQUATION_1: next_state = correct ? EQUATION_2 : EQUATION_1;
-            EQUATION_2: next_state = correct ? EQUATION_3 : EQUATION_2;
-            EQUATION_3: next_state = correct ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
+            EQUATION_1: next_state = (correct == 3'b001) ? EQUATION_2 : EQUATION_1;
+            EQUATION_2: next_state = (correct == 3'b011) ? EQUATION_3 : EQUATION_2;
+            EQUATION_3: next_state = (correct == 3'b111) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
             SEQUENCER: next_state = Sequencer ? DONE : SEQUENCER;
             DONE: next_state = Start ? STARTING : DONE; 
          default: next_state = STARTING;
