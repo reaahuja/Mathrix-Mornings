@@ -5,12 +5,12 @@
 //Incorrect and SequenceFinish are wires for the VGA 
 //FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
 //INVERTED KEYS, HARDCODED COUNTERVALUE AND (FUTURE) USE DIFFERENT LEDS FOR CORRECT IN DIFFERENT MODULES
-module alarmClock(CLOCK_50, SW, KEY, LEDR);
+module alarmCode(CLOCK_50, SW, KEY, LEDR);
     input wire CLOCK_50;
     input wire [9:0] SW;
     input wire [1:0] KEY;
-    output wire [7:0] LEDR;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[2:0]), .timing(LEDR[9:3]));
+    output wire [9:0] LEDR;
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .timing(LEDR[9:3]));
     
 endmodule
 
@@ -25,7 +25,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, timing);
     wire [6:0] CounterValue = 7'b0000001; //on going counter
 
     //for counting
-    output wire [7:0] count;
+    wire [6:0] count;
     output wire [7:0] timing;
 
     topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
@@ -271,6 +271,7 @@ module control_eq1(
                 end
             LOAD_X: begin
                 ld_x = 1'b1;
+					 ld_a = 1'b0;
                 end
             LOAD_Y: begin
                 ld_y = 1'b1;
@@ -337,7 +338,7 @@ module datapath_eq1(
         input wire forceReset,
         output reg correct,
         output reg [7:0] data_result,
-        output wire [7:0] timing
+        output reg [7:0] timing
     );
 
     // input registers
@@ -365,7 +366,8 @@ module datapath_eq1(
                 z <= DataIn;
             if(ld_a)
                 a <= {1'b0, OngoingTimer};
-                timing <= a;
+					 //timing <= {1'b0, OngoingTimer};
+					 timing <= a;
         end
     end
 
