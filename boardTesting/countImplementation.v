@@ -5,16 +5,17 @@
 //Incorrect and SequenceFinish are wires for the VGA 
 //FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
 //INVERTED KEYS, HARDCODED COUNTERVALUE AND (FUTURE) USE DIFFERENT LEDS FOR CORRECT IN DIFFERENT MODULES
-module alarmCode(CLOCK_50, SW, KEY, LEDR);
+module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
     input wire CLOCK_50;
     input wire [9:0] SW;
     input wire [1:0] KEY;
     output wire [9:0] LEDR;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .timing(LEDR[9:3]));
+	 output wire [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5;
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5));
     
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, timing);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
@@ -26,15 +27,23 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, timing);
 
     //for counting
     wire [6:0] count;
-    output wire [7:0] timing;
+    wire [6:0] timing1, timing2, timing3;
+	 output wire [6:0] counter1, counter2, counter3, counter4, counter5, counter6;
 
     topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
     topDatapath d0(Clock, Reset, startEq1, startEq2, startEq3, correct[0], correct[1], correct[2], Wrong); 
 
-    equation1 firstEquation(Clock, Reset, Go, count, DataIn, startEq1, correct[0], timing);
-    equation2 secondEquation(Clock, Reset, Go, count, DataIn, startEq2, correct[1]);
-    equation3 thirdEqation(Clock, Reset, Go, startEq3, count, DataIn, correct[2]);
+    equation1 firstEquation(Clock, Reset, Go, count, DataIn, startEq1, correct[0], timing1);
+    equation2 secondEquation(Clock, Reset, Go, count, DataIn, startEq2, correct[1], timing2);
+    equation3 thirdEqation(Clock, Reset, Go, startEq3, count, DataIn, correct[2], timing3);
     second_counter countUp(Clock, Reset, count);
+	 
+	 hexDisplay counter_1(timing1[2:0], counter1);
+	 hexDisplay counter_11(timing1[6:3], counter2);
+	 hexDisplay counter_2(timing2[2:0], counter3);
+	 hexDisplay counter_22(timing2[6:3], counter4);
+	 hexDisplay counter_3(timing3[2:0], counter5);
+	 hexDisplay counter_33(timing3[6:3], counter6);
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
 endmodule 
@@ -97,6 +106,7 @@ module topControl(
             startEq3 = 1'b1;
          end
          SEQUENCER: begin
+				Sequencer = 1'b1;
          end
          DONE: begin
          end
@@ -447,7 +457,7 @@ startEq2: Queue to start FSM
 correct: Determining whether the input was correct or not 
 */
 
-module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
+module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct, timing);
     input wire Clock;
     input wire Reset;
     input wire Go;
@@ -455,6 +465,7 @@ module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
     input wire [7:0] DataIn;
     input wire startEq2;
     output wire correct;
+	 output wire [7:0] timing;
 
     // lots of wires to connect our datapath and control
     wire ld_x, ld_y, ld_z, ld_a, ld_r;
@@ -491,7 +502,8 @@ module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
         alu_op,
         forceReset,
         correct, 
-        DataResult
+        DataResult, 
+		  timing
     );
 
 
@@ -574,6 +586,7 @@ module control_eq2(
                 forceReset = 1'b0;
                 end
             LOAD_X: begin
+					 ld_a = 1'b0;
                 ld_x = 1'b1;
                 end
             LOAD_Y: begin
@@ -640,7 +653,8 @@ module datapath_eq2(
         input wire [1:0] alu_op,
         input wire forceReset,
         output reg correct,
-        output reg [7:0] data_result
+        output reg [7:0] data_result, 
+		  output reg [7:0] timing
     );
 
     // input registers
@@ -668,6 +682,7 @@ module datapath_eq2(
                 z <= DataIn;
             if(ld_a)
                 a <= {1'b0, OngoingTimer};
+					 timing <= a;
         end
     end
 
@@ -740,11 +755,12 @@ endmodule
 //SIGNAL FOR VGA TO DETERMINE IF OUTPUT IS WRONG OR NOT 
 
 //Equation 3
-module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
+module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct, timing3);
     input wire Clock, Reset, Go, startEq3;
     input wire [6:0] OngoingTimer;
     input wire [7:0] DataIn;
     output wire correct; 
+	 output wire [6:0] timing3;
 
     wire ld_extra, ld_1, ld_2, ld_3, ld_4, ld_5, ld_6;
     wire [2:0] select_extra, select_a, select_b; 
@@ -756,8 +772,8 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
 
     wire Load; 
     //wire [2:0] randomNum; 
-    wire [2:0] randomNum = 3'b111;
-    //random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
+    wire [2:0] randomNum;
+    random r0(Clock, Load, OngoingTimer[2:0], randomNum, initalize); 
 
     wire forceReset;
 
@@ -781,7 +797,7 @@ module equation3(Clock, Reset, Go, startEq3, OngoingTimer, DataIn, correct);
             .startCompare(startCompare),
             .forceReset(forceReset),
             .xInput(xInput), .yInput(yInput),
-            .correct(correct)
+            .correct(correct), .timing3(timing3)
             );
 
 endmodule
@@ -1061,7 +1077,7 @@ module datapath_eq3(
                input startCompare,
                input forceReset,
                input [7:0] xInput, yInput,
-               output reg correct
+               output reg correct, output reg [6:0] timing3
               );
         //registers
         reg [7:0] regExtra, reg1, reg2, reg3, reg4, reg5, reg6;
@@ -1082,6 +1098,8 @@ module datapath_eq3(
                 reg6 <= 8'b0;
             end
             else if (initalize == 1'b1)begin //not working properly, random number initalizes afterwards
+					 timing3 <= 7'b0 + randomNum;
+
                 if (randomNum == 3'b000 || randomNum == 3'b001) begin 
                     reg1 <= 8'd2;
                     reg2 <= 8'd2;
@@ -1287,20 +1305,68 @@ module second_counter(
     output reg [7:0] count  
 );
 
-reg [25:0] cycle_counter = 0;  
+	reg [25:0] cycle_counter = 0;  
 
-always @(posedge clk) begin
-    if (reset) begin
-        cycle_counter <= 0;
-        count <= 0;
-    end else begin
-        if (cycle_counter < 49999999) begin
-            cycle_counter <= cycle_counter + 1;
-        end else begin
-            cycle_counter <= 0;
-            count <= count + 1;
+	always @(posedge clk) begin
+		 if (reset) begin
+			  cycle_counter <= 0;
+			  count <= 0;
+		 end else begin
+			  if (cycle_counter < 49999999) begin
+					cycle_counter <= cycle_counter + 1;
+			  end else begin
+					cycle_counter <= 0;
+					count <= count + 1;
+			  end
+		 end
+	end
+
+endmodule
+
+
+module hexDisplay(hex_number, seven_seg_display);
+input		[3:0]	hex_number;
+output		[6:0]	seven_seg_display;
+
+assign seven_seg_display =
+		({7{(hex_number == 4'h0)}} & 7'b1000000) |
+		({7{(hex_number == 4'h1)}} & 7'b1111001) |
+		({7{(hex_number == 4'h2)}} & 7'b0100100) |
+		({7{(hex_number == 4'h3)}} & 7'b0110000) |
+		({7{(hex_number == 4'h4)}} & 7'b0011001) |
+		({7{(hex_number == 4'h5)}} & 7'b0010010) |
+		({7{(hex_number == 4'h6)}} & 7'b0000010) |
+		({7{(hex_number == 4'h7)}} & 7'b1111000) |
+		({7{(hex_number == 4'h8)}} & 7'b0000000) |
+		({7{(hex_number == 4'h9)}} & 7'b0010000) |
+		({7{(hex_number == 4'hA)}} & 7'b0001000) |
+		({7{(hex_number == 4'hB)}} & 7'b0000011) |
+		({7{(hex_number == 4'hC)}} & 7'b1000110) |
+		({7{(hex_number == 4'hD)}} & 7'b0100001) |
+		({7{(hex_number == 4'hE)}} & 7'b0000110) |
+		({7{(hex_number == 4'hF)}} & 7'b0001110); 
+
+endmodule
+
+module sequencer(startSequencer, DataIn, correct);
+    input wire startSequencer;
+    input wire [5:0] DataIn;
+    output reg correct; 
+
+    always @(*) begin // Procedural block with sensitivity list
+        if (startSequencer) begin 
+            if (DataIn[0] == 1'b1 
+             && DataIn[1] == 1'b0
+             && DataIn[2] == 1'b1
+             && DataIn[3] == 1'b0 
+             && DataIn[4] == 1'b0 
+             && DataIn[5] == 1'b1) begin 
+                correct = 1'b1;
+            end else begin 
+                correct = 1'b0;
+            end
+        end else begin 
+            correct = 1'b0;
         end
     end
-end
-
 endmodule
