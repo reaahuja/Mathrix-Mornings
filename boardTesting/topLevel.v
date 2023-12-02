@@ -5,12 +5,12 @@
 //Incorrect and SequenceFinish are wires for the VGA 
 //FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
 //INVERTED KEYS, HARDCODED COUNTERVALUE AND (FUTURE) USE DIFFERENT LEDS FOR CORRECT IN DIFFERENT MODULES
-module alarmClock(CLOCK_50, SW, KEY, LEDR);
+module alarmCode(CLOCK_50, SW, KEY, LEDR);
     input wire CLOCK_50;
     input wire [9:0] SW;
     input wire [1:0] KEY;
     output wire [7:0] LEDR;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[2:0]));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]));
 endmodule
 
 module topFSM(Clock, Reset, Start, DataIn, Go, correct);
@@ -1268,4 +1268,3 @@ module random(Clock, Load, Seed, randomNum, initalize);
             //$display ("Random[2] = %b", randomNum[2]);
         end
 endmodule
-
