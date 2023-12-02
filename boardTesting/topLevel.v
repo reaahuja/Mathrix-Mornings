@@ -23,19 +23,18 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct);
     wire startEq1, startEq2, startEq3; 
     wire [6:0] CounterValue = 7'b0000001; //on going counter
 
-    topControl t0(Clock, Reset, Start, Go, correct, audioDone, Wrong, Sequencer, startCounter, startEq1, startEq2, startEq3);
-    topDatapath d0(Reset, startEq1, startEq2, startEq3, correct, Wrong); 
+    topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
+    topDatapath d0(Clock, Reset, startEq1, startEq2, startEq3, correct[0], correct[1], correct[2], Wrong); 
 
     equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct[0]);
-    
-    //equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct);
+    equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct[1]);
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
 endmodule 
-
+//if correct[0].. doesn't work then send each individual bit of correct as a signal top Topcontrol and check 
 module topControl(
-    input wire Clock, Reset, Start, Go, correct,
-    output reg audioDone, Wrong, Sequencer, startCounter,
+    input wire Clock, Reset, Start, Go, correct0, correct1, correct2, Wrong,
+    output reg audioDone, Sequencer, startCounter,
     output reg startEq1, startEq2, startEq3
     );
 
@@ -55,9 +54,9 @@ module topControl(
       case (current_state) //Syntax, iLoadX ? S_LOAD_X_WAIT : S_LOAD_X; 
             STARTING: next_state = Start ? AUDIO : STARTING;
             AUDIO: next_state = EQUATION_1;
-            EQUATION_1: next_state = (correct == 3'b001) ? EQUATION_2 : EQUATION_1;
-            EQUATION_2: next_state = (correct == 3'b011) ? EQUATION_3 : EQUATION_2;
-            EQUATION_3: next_state = (correct == 3'b111) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
+            EQUATION_1: next_state = (correct0) ? EQUATION_2 : EQUATION_1;
+            EQUATION_2: next_state = (correct1) ? EQUATION_3 : EQUATION_2;
+            EQUATION_3: next_state = (correct2) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
             SEQUENCER: next_state = Sequencer ? DONE : SEQUENCER;
             DONE: next_state = Start ? STARTING : DONE; 
          default: next_state = STARTING;
@@ -67,7 +66,6 @@ module topControl(
    always@(*)
    begin: enable_signals
       audioDone = 1'b0; 
-      Wrong = 1'b0; 
       Sequencer = 1'b0; 
       startCounter = 1'b0;
       startEq1 = 1'b0;
@@ -108,13 +106,14 @@ module topControl(
 
 endmodule
 
-module topDatapath(input wire Reset, input wire startEq1, input wire startEq2, input wire startEq3, input wire correct, output reg Wrong); 
-always @(*) begin 
-    if (startEq1 && !correct) begin 
+//changed wrong, due to three bits in correct 
+module topDatapath(input wire Clock, input wire Reset, input wire startEq1, input wire startEq2, input wire startEq3, input wire correct0, input wire correct1, input wire correct2, output reg Wrong); 
+always @(correct0, correct1, correct2) begin 
+    if (startEq1 && !correct0) begin 
         Wrong = 1'b1;
-    end else if (startEq2 && !correct) begin 
+    end else if (startEq2 && !correct1) begin 
         Wrong = 1'b1;
-    end else if (startEq3 && !correct) begin 
+    end else if (startEq3 && !correct2) begin 
         Wrong = 1'b1;
     end else if(Reset) begin 
         Wrong = 1'b0;
@@ -154,7 +153,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     wire [7:0] DataResult;
     wire compareValues, turnOff, forceReset; 
 
-    control C0(
+    control_eq1 C0_eq1(
         Clock, 
         Reset, 
         Go, 
@@ -169,7 +168,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         compareValues, turnOff, forceReset
     );
 
-    datapath D0(
+    datapath_eq1 D0_eq1(
         Clock, Reset, Go,
         OngoingTimer,
         DataIn, 
@@ -186,7 +185,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
 
  endmodule
 
-module control(
+module control_eq1(
         input wire Clock, Reset, go, 
         input wire [6:0] OngoingTimer, 
         input wire [7:0] DataIn, 
@@ -317,7 +316,7 @@ module control(
 endmodule
 
 
-module datapath(
+module datapath_eq1(
         input wire Clock, Reset, Go, 
         input wire [6:0] OngoingTimer, 
         input wire [7:0] DataIn, 
@@ -424,5 +423,305 @@ module datapath(
 
 endmodule
 
-//SIGNAL FOR VGA TO DETERMINE IF OUTPUT IS WRONG OR NOT 
+//Second equation 
+/*
+Clock: System's clock
+Reset: Active High reset 
+Go: Signal asserted to input value to system 
+OngoingTimer: The current time in the system 
+DataIn: The value for the different variables 
+startEq2: Queue to start FSM
+correct: Determining whether the input was correct or not 
+*/
 
+module equation2(Clock, Reset, Go, OngoingTimer, DataIn, startEq2, correct);
+    input wire Clock;
+    input wire Reset;
+    input wire Go;
+    input wire [6:0] OngoingTimer;
+    input wire [7:0] DataIn;
+    input wire startEq2;
+    output wire correct;
+
+    // lots of wires to connect our datapath and control
+    wire ld_x, ld_y, ld_z, ld_a, ld_r;
+    wire ld_alu_out;
+    wire [1:0]  alu_select_a, alu_select_b;
+    wire [1:0] alu_op;
+    wire [7:0] DataResult;
+    wire compareValues, turnOff, forceReset; 
+
+    control_eq2 C0_eq2(
+        Clock, 
+        Reset, 
+        Go, 
+        OngoingTimer, 
+        DataIn, 
+        correct,
+        startEq2,
+        ld_x, ld_y, ld_z, ld_a, ld_r,
+        ld_alu_out,
+        alu_select_a, alu_select_b,
+        alu_op,
+        compareValues, turnOff, 
+        forceReset
+    );
+
+    datapath_eq2 D0_eq2(
+        Clock, Reset, Go,
+        OngoingTimer,
+        DataIn, 
+        compareValues, turnOff,
+        ld_x, ld_y, ld_z, ld_a, ld_r,
+        ld_alu_out,
+        alu_select_a, alu_select_b,
+        alu_op,
+        forceReset,
+        correct, 
+        DataResult
+    );
+
+
+ endmodule
+
+module control_eq2(
+        input wire Clock, Reset, go, 
+        input wire [6:0] OngoingTimer, 
+        input wire [7:0] DataIn, 
+        input wire correct,
+        input wire startEq2,
+        output reg ld_x, ld_y, ld_z, ld_a, ld_r,
+        output reg ld_alu_out,
+        output reg [1:0] alu_select_a, alu_select_b,
+        output reg [1:0] alu_op,
+        output reg compareValues, turnOff, 
+        output reg forceReset
+    );
+
+    reg [5:0] current_state, next_state;
+
+    localparam  getA          = 5'd0,
+                LOAD_X        = 5'd1,
+                LOAD_X_WAIT   = 5'd2,
+                LOAD_Y        = 5'd3,
+                LOAD_Y_WAIT   = 5'd4,
+                LOAD_Z        = 5'd5,
+                LOAD_Z_WAIT   = 5'd6,
+                CYCLE_0       = 5'd7,
+                CYCLE_1       = 5'd8,
+                CYCLE_2       = 5'd9,
+                CYCLE_3       = 5'd10,
+                COMPARE       = 5'd11, 
+                COMPLETE      = 5'd12,
+                resetSystem   = 5'd13;
+
+    // Next state logic aka our state table
+    always@(*)
+    begin: state_table
+            case (current_state)
+                getA: next_state = startEq2 ? LOAD_X : getA; 
+                LOAD_X: next_state = go ? LOAD_X_WAIT : LOAD_X; 
+                LOAD_X_WAIT: next_state = go ? LOAD_X_WAIT : LOAD_Y; 
+                LOAD_Y: next_state = go ? LOAD_Y_WAIT : LOAD_Y; 
+                LOAD_Y_WAIT: next_state = go ? LOAD_Y_WAIT : LOAD_Z; 
+                LOAD_Z: next_state = go ? LOAD_Z_WAIT : LOAD_Z; 
+                LOAD_Z_WAIT: next_state = go ? LOAD_Z_WAIT : CYCLE_0; 
+                CYCLE_0: next_state = CYCLE_1;
+                CYCLE_1: next_state = CYCLE_2;
+                CYCLE_2: next_state = CYCLE_3;
+                CYCLE_3: next_state = COMPARE;
+                COMPARE: next_state = COMPLETE; // we will be done our two operations, start over after
+                COMPLETE: next_state = correct ? COMPLETE : resetSystem;
+                resetSystem: next_state = getA;
+            default:     next_state = getA;
+        endcase
+    end // state_table
+    //TURN startEq2 LOW IN COMPLETE
+
+    // Output logic aka all of our datapath control signals
+    always @(*)
+    begin: enable_signals
+        // By default make all our signals 0
+        ld_alu_out = 1'b0;
+        ld_x = 1'b0;
+        ld_y = 1'b0;
+        ld_z = 1'b0;
+        ld_a = 1'b0;
+        ld_r = 1'b0;
+        alu_select_a = 2'b0;
+        alu_select_b = 2'b0;
+        alu_op       = 2'b0;
+        compareValues = 1'b0; 
+        turnOff = 1'b0;
+        forceReset = 1'b0;
+
+        case (current_state)
+            getA: begin
+                ld_a = 1'b1;
+                forceReset = 1'b0;
+                end
+            LOAD_X: begin
+                ld_x = 1'b1;
+                end
+            LOAD_Y: begin
+                ld_y = 1'b1;
+                end
+            LOAD_Z: begin
+                ld_z = 1'b1;
+                end
+            CYCLE_0: begin // Do X*Y in Y
+                alu_select_a = 2'b00;
+                alu_select_b = 2'b01;
+                alu_op = 2'b01;
+                ld_alu_out = 1'b1; ld_y = 1'b1;
+            end
+            CYCLE_1: begin // Do X*X in X
+                alu_select_a = 2'b00;
+                alu_select_b = 2'b00;
+                alu_op = 2'b01;
+                ld_alu_out = 1'b1; ld_x = 1'b1;
+            end
+            CYCLE_2: begin // Do (X*X)*Z in X
+                alu_select_a = 2'b00; 
+                alu_select_b = 2'b10;
+                alu_op = 2'b01;
+                ld_alu_out = 1'b1; ld_x = 1'b1;
+            end
+            CYCLE_3: begin // Do ((X*X)*Z) + X*Y in R
+                alu_select_a = 2'b00;
+                alu_select_b = 2'b01;
+                alu_op = 2'b00;
+                ld_r = 1'b1;
+            end
+            COMPARE: begin // Compare result to value in A
+                compareValues = 1'b1; 
+            end
+            COMPLETE: begin //done
+                turnOff = 1'b1; //for VGA
+            end
+            resetSystem: begin 
+                forceReset = 1'b1;
+            end
+        endcase
+    end // enable_signals
+
+    // current_state registers
+    always@(posedge Clock)
+    begin: state_FFs
+        if(Reset || forceReset)
+            current_state <= getA;
+        else
+            current_state <= next_state;
+    end // state_FFS
+endmodule
+
+
+module datapath_eq2(
+        input wire Clock, Reset, Go, 
+        input wire [6:0] OngoingTimer, 
+        input wire [7:0] DataIn, 
+        input wire compareValues, turnOff, 
+        input wire ld_x, ld_y, ld_z, ld_a, ld_r,
+        input wire ld_alu_out,
+        input wire [1:0] alu_select_a, alu_select_b,
+        input wire [1:0] alu_op,
+        input wire forceReset,
+        output reg correct,
+        output reg [7:0] data_result
+    );
+
+    // input registers
+    reg [7:0] x, y, z, a;
+
+    // output of the alu
+    reg [7:0] alu_out;
+    // alu input muxes
+    reg [7:0] alu_a, alu_b;
+
+    // Registers a, b, c, x with respective input logic
+    always@(posedge Clock) begin
+        if(Reset || forceReset) begin
+            x <= 8'b0;
+            y <= 8'b0;
+            z <= 8'b0;
+            a <= 8'b0;
+        end
+        else begin
+            if(ld_x)
+                x <= ld_alu_out ? alu_out : DataIn; // load alu_out if load_alu_out signal is high, otherwise load from data_in
+            if(ld_y)
+                y <= ld_alu_out ? alu_out : DataIn; // load alu_out if load_alu_out signal is high, otherwise load from data_in
+            if(ld_z)
+                z <= DataIn;
+            if(ld_a)
+                a <= {1'b0, OngoingTimer};
+        end
+    end
+
+    // Output result register
+    always@(posedge Clock) begin
+        if(Reset || forceReset) begin
+            data_result <= 8'b0;
+        end
+        else
+            if(ld_r)
+                data_result <= alu_out;
+    end
+
+    // The ALU input multiplexers
+    always @(*)
+    begin
+        case (alu_select_a)
+            2'b00:
+                alu_a = x;
+            2'b01:
+                alu_a = y;
+            2'b10:
+                alu_a = z;
+            default: alu_a = 8'b0;
+        endcase
+
+        case (alu_select_b)
+            2'b00:
+                alu_b = x;
+            2'b01:
+                alu_b = y;
+            2'b10:
+                alu_b = z;
+            default: alu_b = 8'b0;
+        endcase
+    end
+
+    // The ALU
+    always @(*)
+    begin : ALU
+        // alu
+        case (alu_op)
+            2'b00: begin
+                   alu_out = alu_a + alu_b; //performs addition
+               end
+            2'b01: begin
+                   alu_out = alu_a * alu_b; //performs multiplication
+               end
+            2'b10: begin
+                   alu_out = alu_a / alu_b; //performs divison
+               end
+            default: alu_out = 8'b0;
+        endcase
+    end
+
+    //comparison 
+    always @(*)
+    begin: COMPARE
+        // a == data_result but changing for testing 
+        if (compareValues == 1'b1 && a == data_result) begin 
+            correct <= 1'b1;
+        end
+        else if (a != data_result)begin
+            correct <= 1'b0; 
+        end
+    end
+
+endmodule
+
+//SIGNAL FOR VGA TO DETERMINE IF OUTPUT IS WRONG OR NOT 
