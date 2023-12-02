@@ -65,3 +65,22 @@ force alarmClock/KEY[1] 1'b0
 run 2ns
 
 run 20ns
+
+#Equation 3
+force alarmClock/KEY[1] 1'b0
+run 5ns
+
+force alarmClock/KEY[1] 1'b1
+force alarmClock/SW[7:0] 8'b00000000
+run 8ns
+force alarmClock/KEY[1] 1'b0
+run 2ns
+
+force alarmClock/KEY[1] 1'b1
+force alarmClock/SW[7:0] 8'b00000001
+run 8ns
+force alarmClock/KEY[1] 1'b0
+run 2ns
+
+
+run 20ns
