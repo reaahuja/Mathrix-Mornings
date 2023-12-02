@@ -10,11 +10,11 @@ module alarmClock(CLOCK_50, SW, KEY, LEDR);
     input wire [9:0] SW;
     input wire [1:0] KEY;
     output wire [7:0] LEDR;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[2:0]), .count(LEDR[9:3]));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(KEY[1]), .correct(LEDR[2:0]), .timing(LEDR[9:3]));
     
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, count);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, timing);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
@@ -26,13 +26,14 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, count);
 
     //for counting
     output wire [7:0] count;
+    output wire [7:0] timing;
 
     topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
     topDatapath d0(Clock, Reset, startEq1, startEq2, startEq3, correct[0], correct[1], correct[2], Wrong); 
 
-    equation1 firstEquation(Clock, Reset, Go, CounterValue, DataIn, startEq1, correct[0]);
-    equation2 secondEquation(Clock, Reset, Go, CounterValue, DataIn, startEq2, correct[1]);
-    equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct[2]);
+    equation1 firstEquation(Clock, Reset, Go, count, DataIn, startEq1, correct[0], timing);
+    equation2 secondEquation(Clock, Reset, Go, count, DataIn, startEq2, correct[1]);
+    equation3 thirdEqation(Clock, Reset, Go, startEq3, count, DataIn, correct[2]);
     second_counter countUp(Clock, Reset, count);
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
@@ -142,7 +143,7 @@ correct: Determining whether the input was correct or not
 */
 
 
-module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
+module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct, timing);
     input wire Clock;
     input wire Reset;
     input wire Go;
@@ -150,6 +151,7 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
     input wire [7:0] DataIn;
     input wire startEq1;
     output wire correct;
+    output wire [7:0] timing;
 
     // lots of wires to connect our datapath and control
     wire ld_x, ld_y, ld_z, ld_a, ld_r;
@@ -185,7 +187,8 @@ module equation1(Clock, Reset, Go, OngoingTimer, DataIn, startEq1, correct);
         alu_op,
         forceReset,
         correct, 
-        DataResult
+        DataResult, 
+        timing
     );
 
 
@@ -333,7 +336,8 @@ module datapath_eq1(
         input wire [1:0] alu_op,
         input wire forceReset,
         output reg correct,
-        output reg [7:0] data_result 
+        output reg [7:0] data_result,
+        output wire [7:0] timing
     );
 
     // input registers
@@ -361,6 +365,7 @@ module datapath_eq1(
                 z <= DataIn;
             if(ld_a)
                 a <= {1'b0, OngoingTimer};
+                timing <= a;
         end
     end
 
