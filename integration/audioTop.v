@@ -19,7 +19,8 @@ module AudioImplementation(
 	AUD_DACDAT,
 
 	FPGA_I2C_SCLK,
-	SW
+	audioStart, 
+    Sequencer
 );
 
 /*****************************************************************************
@@ -99,26 +100,36 @@ wire enableF4;
 wire enableE4;
 wire enableD4;
 
-// wire enableC4_2;
-// wire enableG4_2;
-// wire enableA4_2;
-// wire enableF4_2;
-// wire enableE4_2;
-// wire enableD4_2;
+wire enableC4_2;
+wire enableG4_2;
+wire enableA4_2;
+wire enableF4_2;
+wire enableE4_2;
+wire enableD4_2;
 
-//wire enableTwinkle = SW[0];
-wire enableTwinkle = SW;
-//wire enableHotCross = SW[1];
+wire enableTwinkle;
+wire enableHotCross;
+
+always @(*) begin 
+    if(Sequencer) begin 
+        assign enableHotCross = 1'b1; 
+        assign enableTwinkle = 1'b0;
+    end else begin 
+        assign enableHotCross = 1'b0; 
+        assign enableTwinkle = 1'b1;
+    end
+end
+
 
 wire [3:0] value;
 
 counter c0(CLOCK_50, value);
 
 twinkle twinkleSong(CLOCK_50, Reset, value, enableTwinkle, enableC4, enableG4, enableA4, enableF4, enableE4, enableD4);
-//hotCross hotCrossBuns(CLOCK_50, Reset, value, enableHotCross, enableC4_2, enableG4_2, enableA4_2, enableF4_2, enableE4_2, enableD4_2);
+hotCross hotCrossBuns(CLOCK_50, Reset, value, enableHotCross, enableC4_2, enableG4_2, enableA4_2, enableF4_2, enableE4_2, enableD4_2);
 
 wire [31:0] soundC4, soundG4, soundA4, soundF4, soundE4, soundD4;
-//wire [31:0] soundC4_2, soundG4_2, soundA4_2, soundF4_2, soundE4_2, soundD4_2;
+wire [31:0] soundC4_2, soundG4_2, soundA4_2, soundF4_2, soundE4_2, soundD4_2;
 parameter CLOCK = 50000000;
 
 
@@ -129,12 +140,12 @@ playSound noteF4(CLOCK_50, soundF4, F4, enableF4);
 playSound noteE4(CLOCK_50, soundE4, E4, enableE4);
 playSound noteD4(CLOCK_50, soundD4, D4, enableD4);
 
-// playSound noteC4_2(CLOCK_50, soundC4_2, C4, enableC4_2);
-// playSound noteG4_2(CLOCK_50, soundG4_2, G4, enableG4_2);
-// playSound noteA4_2(CLOCK_50, soundA4_2, A4, enableA4_2);
-// playSound noteF4_2(CLOCK_50, soundF4_2, F4, enableF4_2);
-// playSound noteE4_2(CLOCK_50, soundE4_2, E4, enableE4_2);
-// playSound noteD4_2(CLOCK_50, soundD4_2, D4, enableD4_2);
+playSound noteC4_2(CLOCK_50, soundC4_2, C4, enableC4_2);
+playSound noteG4_2(CLOCK_50, soundG4_2, G4, enableG4_2);
+playSound noteA4_2(CLOCK_50, soundA4_2, A4, enableA4_2);
+playSound noteF4_2(CLOCK_50, soundF4_2, F4, enableF4_2);
+playSound noteE4_2(CLOCK_50, soundE4_2, E4, enableE4_2);
+playSound noteD4_2(CLOCK_50, soundD4_2, D4, enableD4_2);
 //play one note after another once it starts working 
 
 
@@ -156,8 +167,8 @@ playSound noteD4(CLOCK_50, soundD4, D4, enableD4);
 
 assign read_audio_in			= audio_in_available & audio_out_allowed;
 
-assign left_channel_audio_out	= left_channel_audio_in + soundC4+soundG4+soundA4+soundF4+soundE4+soundD4; //(enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2);
-assign right_channel_audio_out	= right_channel_audio_in + soundC4+soundG4+soundA4+soundF4+soundE4+soundD4; //(enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2);
+assign left_channel_audio_out	= left_channel_audio_in + (enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2); //soundC4+soundG4+soundA4+soundF4+soundE4+soundD4; //(enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2);
+assign right_channel_audio_out	= right_channel_audio_in + (enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2); //soundC4+soundG4+soundA4+soundF4+soundE4+soundD4; //(enableTwinkle ? soundC4+soundG4+soundA4+soundF4+soundE4+soundD4 : soundC4_2+soundG4_2+soundA4_2+soundF4_2+soundE4_2+soundD4_2);
 assign write_audio_out			= audio_in_available & audio_out_allowed;
 
 /*****************************************************************************
