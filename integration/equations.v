@@ -5,22 +5,21 @@
 //Incorrect and SequenceFinish are wires for the VGA 
 //FOR TESTING PURPOSES, CHANGE COMPARISON VALUES TO 00000000
 //INVERTED KEYS, HARDCODED COUNTERVALUE AND (FUTURE) USE DIFFERENT LEDS FOR CORRECT IN DIFFERENT MODULES
-module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK);
+module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
     input wire CLOCK_50;
     input wire [9:0] SW;
     input wire [1:0] KEY;
     output wire [9:0] LEDR;
 	output wire [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]), .AUD_ADCDAT(AUD_ADCDAT), .AUD_BCLK(AUD_BCLK), .AUD_ADCLRCK(AUD_ADCLRCK), .AUD_DACLRCK(AUD_DACLRCK), .FPGA_I2C_SDAT(FPGA_I2C_SDAT), .AUD_XCK(AUD_XCK), .AUD_DACDAT(AUD_DACDAT), .FPGA_I2C_SCLK(FPGA_I2C_SCLK));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]));
     
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
-	 output wire wrongLED;
-	 output wire extraLED;
+	output wire wrongLED;
 
     wire audioDone, Wrong, Sequencer, startCounter, extra;
     //equations wires 
@@ -49,9 +48,6 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 //module sequencer(startSequencer, Go, DataIn, correct);
 	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
-
-    AudioImplementation audio(Clock, Reset, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK, audioDone);
-
 endmodule 
 
 module topControl(
