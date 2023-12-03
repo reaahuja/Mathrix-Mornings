@@ -107,16 +107,16 @@ wire enableF4_2;
 wire enableE4_2;
 wire enableD4_2;
 
-wire enableTwinkle;
-wire enableHotCross;
+reg enableTwinkle;
+reg enableHotCross;
 
 always @(*) begin 
     if(Sequencer) begin 
-        assign enableHotCross = 1'b1; 
-        assign enableTwinkle = 1'b0;
+        enableHotCross = 1'b1; 
+        enableTwinkle = 1'b0;
     end else begin 
-        assign enableHotCross = 1'b0; 
-        assign enableTwinkle = 1'b1;
+        enableHotCross = 1'b0; 
+        enableTwinkle = 1'b1;
     end
 end
 
