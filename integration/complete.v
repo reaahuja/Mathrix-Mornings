@@ -40,7 +40,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
     output AUD_DACDAT;
     output FPGA_I2C_SCLK;
 
-    topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
+    topControl t0(Clock, Reset, Start, Go, correct[0], correct[1], correct[2], Wrong, wrongLED, audioDone, Sequencer, startCounter, startEq1, startEq2, startEq3);
     topDatapath d0(Clock, Reset, startEq1, startEq2, startEq3, correct[0], correct[1], correct[2], Wrong); 
 
     equation1 firstEquation(Clock, Reset, Go, count, DataIn, startEq1, correct[0], timing1);
@@ -55,7 +55,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
 	 //module sequencer(startSequencer, Go, DataIn, correct);
-	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
+	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
     AudioImplementation audio(Clock, Reset, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK, audioDone, Sequencer);
@@ -63,7 +63,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 endmodule 
 
 module topControl(
-    input wire Clock, Reset, Start, Go, correct0, correct1, correct2, Wrong,
+    input wire Clock, Reset, Start, Go, correct0, correct1, correct2, Wrong, stateLED,
     output reg audioDone, Sequencer, startCounter,
     output reg startEq1, startEq2, startEq3
     );
@@ -87,8 +87,8 @@ module topControl(
             EQUATION_1: next_state = (correct0) ? EQUATION_2 : EQUATION_1;
             EQUATION_2: next_state = (correct1) ? EQUATION_3 : EQUATION_2;
             EQUATION_3: next_state = (correct2) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
-            SEQUENCER: next_state = Wrong ? SEQUENCER : DONE;
-            DONE: next_state = Start ? STARTING : DONE; 
+            SEQUENCER: next_state = stateLED ? SEQUENCER : DONE;
+            //DONE: next_state = Start ? STARTING : DONE; 
          default: next_state = STARTING;
       endcase
    end
@@ -123,6 +123,7 @@ module topControl(
          end
          DONE: begin
             audioDone = 1'b0;
+            Sequencer = 1'b0;
          end
       endcase
    end
@@ -1363,18 +1364,16 @@ assign seven_seg_display =
 endmodule
 
 //	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
-module sequencer(startSequencer, Go, DataIn, stateLED, Wrong);
+module sequencer(startSequencer, Go, DataIn, stateLED);
     input wire startSequencer;
 	input wire Go;
     input wire [7:0] DataIn;
-    output reg endAlarm; 
-    output reg Wrong; 
+    output reg stateLED; 
 
     always @(*) begin 
         if (startSequencer) begin 
             if (DataIn[2] == 1'b0 && DataIn[3] == 1'b1) begin 
                 stateLED <= 1'b0;
-                Wrong <= 1'b0;
             end else begin
 				stateLED <= 1'b1;
 			end
