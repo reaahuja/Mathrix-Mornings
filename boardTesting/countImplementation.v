@@ -11,15 +11,16 @@ module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5);
     input wire [1:0] KEY;
     output wire [9:0] LEDR;
 	 output wire [6:0] HEX0, HEX1, HEX2, HEX3, HEX4, HEX5;
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]), .extraLED(LEDR[5]));
     
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, extraLED);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
 	 output wire wrongLED;
+	 output wire extraLED;
 
     wire audioDone, Wrong, Sequencer, startCounter, extra;
     //equations wires 
@@ -45,8 +46,8 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_22(timing2[6:3], counter4);
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
-	 
-	 sequencer(Sequencer, Go, DataIn, wrongLED);
+	 //module sequencer(startSequencer, Go, DataIn, correct);
+	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .userCorrect(extraLED));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
 endmodule 
@@ -1351,16 +1352,19 @@ assign seven_seg_display =
 
 endmodule
 
-module sequencer(startSequencer, Go, DataIn, correct);
-    input wire startSequencer, Go;
+module sequencer(startSequencer, Go, DataIn, correct, userCorrect);
+    input wire startSequencer;
+	 input wire Go;
     input wire [7:0] DataIn;
     output reg correct; 
+	 output reg userCorrect;
 
     always @(*) begin 
         if (startSequencer && Go) begin 
             if (DataIn[2] == 1'b0 
              && DataIn[3] == 1'b1) begin 
                 correct <= 1'b0;
+					 userCorrect <= 1'b1;
             end else begin
 					correct <= 1'b1;
 				end
