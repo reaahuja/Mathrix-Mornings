@@ -178,7 +178,7 @@ assign write_audio_out			= audio_in_available & audio_out_allowed;
 Audio_Controller Audio_Controller (
 	// Inputs
 	.CLOCK_50						(CLOCK_50),
-	.reset						(~KEY),
+	.reset						(KEY),
 
 	.clear_audio_in_memory		(),
 	.read_audio_in				(read_audio_in),
@@ -212,7 +212,7 @@ avconf #(.USE_MIC_INPUT(1)) avc (
 	.FPGA_I2C_SCLK					(FPGA_I2C_SCLK),
 	.FPGA_I2C_SDAT					(FPGA_I2C_SDAT),
 	.CLOCK_50					(CLOCK_50),
-	.reset						(~KEY)
+	.reset						(KEY)
 );
 
 endmodule
