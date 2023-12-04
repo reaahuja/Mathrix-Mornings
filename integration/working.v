@@ -95,7 +95,7 @@ module topControl(
             EQUATION_1: next_state = (correct0) ? EQUATION_2 : EQUATION_1;
             EQUATION_2: next_state = (correct1) ? EQUATION_3 : EQUATION_2;
             EQUATION_3: next_state = (correct2) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
-            SEQUENCER: next_state = stateLED ? DONE : SEQUENCER;
+            SEQUENCER: next_state = stateLED ? SEQUENCER : DONE;
             DONE: next_state = DONE; 
          default: next_state = STARTING;
       endcase
@@ -132,6 +132,7 @@ module topControl(
          end
          DONE: begin
             audioDone = 1'b0;
+				Sequencer = 1'b0;
          end
       endcase
    end
@@ -1379,18 +1380,20 @@ module sequencer(clock, startSequencer, Go, DataIn, stateLED, correct);
     output reg stateLED, correct; 
     
 
-    always @(*) begin 
+    always @(startSequencer) begin 
         if (startSequencer) begin 
 				correct <= 1'b1;
-            if (DataIn[2] == 1'b0 && DataIn[3] == 1'b1) begin 
+            if (DataIn[4] == 1'b0 && DataIn[5] == 1'b1) begin 
                 stateLED <= 1'b0;
      
-            end else begin                                                   
+            end else begin
 				stateLED <= 1'b1;
 				end
-        end else begin 
+        end else if (!correct)begin 
             stateLED <= 1'b1;
-				
-        end
+				correct <= 1'b0;
+        end else begin
+				correct <= 1'b0;
+		  end
     end
 endmodule
