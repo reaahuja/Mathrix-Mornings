@@ -24,7 +24,7 @@ module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, AU
     topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]), .AUD_ADCDAT(AUD_ADCDAT), .AUD_BCLK(AUD_BCLK), .AUD_ADCLRCK(AUD_ADCLRCK), .AUD_DACLRCK(AUD_DACLRCK), .FPGA_I2C_SDAT(FPGA_I2C_SDAT), .AUD_XCK(AUD_XCK), .AUD_DACDAT(AUD_DACDAT), .FPGA_I2C_SCLK(FPGA_I2C_SCLK));
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
@@ -55,7 +55,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
 	 //module sequencer(startSequencer, Go, DataIn, correct);
-	sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED), .Wrong(Wrong));
+	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED), .Wrong(Wrong));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
     input AUD_ADCDAT;
@@ -94,7 +94,7 @@ module topControl(
             AUDIO: next_state = EQUATION_1;
             EQUATION_1: next_state = (correct0) ? EQUATION_2 : EQUATION_1;
             EQUATION_2: next_state = (correct1) ? EQUATION_3 : EQUATION_2;
-            EQUATION_3: next_state = (correct2) ? (Wrong ? SEQUENCER : DONE) : EQUATION_3;
+            EQUATION_3: next_state = (correct2) ? (DONE) : EQUATION_3;
             SEQUENCER: next_state = stateLED ? SEQUENCER : DONE;
             DONE: next_state = DONE; 
          default: next_state = STARTING;
