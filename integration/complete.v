@@ -55,7 +55,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
 	 //module sequencer(startSequencer, Go, DataIn, correct);
-	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
+	sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED), .Wrong(Wrong));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
     input AUD_ADCDAT;
