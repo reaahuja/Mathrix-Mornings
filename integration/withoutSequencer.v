@@ -21,16 +21,16 @@ module alarmCode(CLOCK_50, SW, KEY, LEDR, HEX0, HEX1, HEX2, HEX3, HEX4, HEX5, AU
     output AUD_DACDAT;
     output FPGA_I2C_SCLK;
 
-    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]), .AUD_ADCDAT(AUD_ADCDAT), .AUD_BCLK(AUD_BCLK), .AUD_ADCLRCK(AUD_ADCLRCK), .AUD_DACLRCK(AUD_DACLRCK), .FPGA_I2C_SDAT(FPGA_I2C_SDAT), .AUD_XCK(AUD_XCK), .AUD_DACDAT(AUD_DACDAT), .FPGA_I2C_SCLK(FPGA_I2C_SCLK));
+    topFSM startAlarm(.Clock(CLOCK_50), .Reset(~KEY[0]), .Start(SW[9]), .DataIn(SW[7:0]), .Go(~KEY[1]), .correct(LEDR[2:0]), .counter1(HEX0), .counter2(HEX1), .counter3(HEX2), .counter4(HEX3), .counter5(HEX4), .counter6(HEX5), .wrongLED(LEDR[4]), .AUD_ADCDAT(AUD_ADCDAT), .AUD_BCLK(AUD_BCLK), .AUD_ADCLRCK(AUD_ADCLRCK), .AUD_DACLRCK(AUD_DACLRCK), .FPGA_I2C_SDAT(FPGA_I2C_SDAT), .AUD_XCK(AUD_XCK), .AUD_DACDAT(AUD_DACDAT), .FPGA_I2C_SCLK(FPGA_I2C_SCLK), .test(LEDR[5]));
 endmodule
 
-module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK);
+module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, counter3, counter4, counter5, counter6, wrongLED, AUD_ADCDAT, AUD_BCLK, AUD_ADCLRCK, AUD_DACLRCK, FPGA_I2C_SDAT, AUD_XCK, AUD_DACDAT, FPGA_I2C_SCLK, test);
     input wire Clock, Reset, Start, Go;
     input wire [7:0] DataIn;  
     output wire [2:0] correct; 
-	output wire wrongLED;
+	output wire wrongLED, test;
 
-    wire audioDone, Wrong, Sequencer, startCounter, extra;
+    wire audioDone, Wrong, Sequencer, startCounter;
     //equations wires 
     wire startEq1, startEq2, startEq3; 
     wire [6:0] CounterValue = 7'b0000001; //on going counter
@@ -55,7 +55,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
 	 //module sequencer(startSequencer, Go, DataIn, stateLED, Wrong);
-	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED));
+	 sequencer seq(.clock(Clock), .startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED), .correct(test));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
     input AUD_ADCDAT;
@@ -94,7 +94,7 @@ module topControl(
             AUDIO: next_state = EQUATION_1;
             EQUATION_1: next_state = (correct0) ? EQUATION_2 : EQUATION_1;
             EQUATION_2: next_state = (correct1) ? EQUATION_3 : EQUATION_2;
-            EQUATION_3: next_state = (correct2) ? ((Wrong && correct2) ? SEQUENCER : DONE) : EQUATION_3;
+            EQUATION_3: next_state = (correct2) ? ((Wrong) ? (correct2 ? SEQUENCER : EQUATION_3) : DONE) : EQUATION_3;
             SEQUENCER: next_state = stateLED ? SEQUENCER : DONE;
             DONE: next_state = DONE; 
          default: next_state = STARTING;
@@ -1372,23 +1372,25 @@ assign seven_seg_display =
 endmodule
 
 //	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
-module sequencer(startSequencer, Go, DataIn, stateLED);
-    input wire startSequencer;
+module sequencer(clock, startSequencer, Go, DataIn, stateLED, correct);
+    input wire startSequencer, clock;
 	input wire Go;
     input wire [7:0] DataIn;
-    output reg stateLED; 
+    output reg stateLED, correct; 
     
 
     always @(*) begin 
         if (startSequencer) begin 
+				correct <= 1'b1;
             if (DataIn[2] == 1'b0 && DataIn[3] == 1'b1) begin 
                 stateLED <= 1'b0;
      
             end else begin
 				stateLED <= 1'b1;
-			end
+				end
         end else begin 
-            stateLED <= 1'b0;
+            stateLED <= 1'b1;
+				
         end
     end
 endmodule
