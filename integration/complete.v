@@ -55,7 +55,7 @@ module topFSM(Clock, Reset, Start, DataIn, Go, correct, counter1, counter2, coun
 	 hexDisplay counter_3(timing3[2:0], counter5);
 	 hexDisplay counter_33(timing3[6:3], counter6);
 	 //module sequencer(startSequencer, Go, DataIn, correct);
-	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED), .Wrong(Wrong));
+	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .stateLED(wrongLED));
     //equation3 thirdEqation(Clock, Reset, Go, startEq3, CounterValue, DataIn, correct);
 
     input AUD_ADCDAT;
@@ -1372,18 +1372,16 @@ assign seven_seg_display =
 endmodule
 
 //	 sequencer seq(.startSequencer(Sequencer), .Go(Go), .DataIn(DataIn), .correct(wrongLED), .Wrong(Wrong));
-module sequencer(startSequencer, Go, DataIn, stateLED, Wrong);
+module sequencer(startSequencer, Go, DataIn, stateLED);
     input wire startSequencer;
 	input wire Go;
     input wire [7:0] DataIn;
     output reg stateLED; 
-    output reg Wrong; 
 
     always @(*) begin 
         if (startSequencer) begin 
             if (DataIn[2] == 1'b0 && DataIn[3] == 1'b1) begin 
                 stateLED <= 1'b0;
-                Wrong <= 1'b0;
             end else begin
 				stateLED <= 1'b1;
 			end
